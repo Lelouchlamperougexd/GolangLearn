@@ -16,6 +16,7 @@ test:
   script:
     - node -v
     - npm -v
+    - printf "%s" "$ENV_FRONT_PROD" > .env.production
     - npm ci
     - npm run build
   only:
@@ -25,6 +26,7 @@ test:
 build:
   stage: build
   script:
+    - printf "%s" "$ENV_FRONT_PROD" > .env.production
     - docker build -t real-estate-frontend:ci-check .
     - docker image rm real-estate-frontend:ci-check || true
   only:
@@ -34,10 +36,10 @@ build:
 deploy:
   stage: deploy
   script:
-    - echo "Running on $(hostname)"
     - mkdir -p "$DEPLOY_PATH"
     - rsync -av --delete --exclude '.git' --exclude '.gitlab-ci.yml' ./ "$DEPLOY_PATH"/
     - cd "$DEPLOY_PATH"
+    - printf "%s" "$ENV_FRONT_PROD" > .env.production
     - docker compose -f docker-compose.prod.yml up -d --build
     - docker compose -f docker-compose.prod.yml ps
     - docker image prune -f || true
