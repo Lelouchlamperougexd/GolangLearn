@@ -1,0 +1,45 @@
+stages:
+  - test
+  - build
+  - deploy
+
+variables:
+  DEPLOY_PATH: "/opt/real-estate/frontend"
+
+default:
+  tags:
+    - rocky
+  interruptible: true
+
+test:
+  stage: test
+  script:
+    - node -v
+    - npm -v
+    - npm ci
+    - npm run build
+  only:
+    - develop
+    - main
+
+build:
+  stage: build
+  script:
+    - docker build -t real-estate-frontend:ci-check .
+    - docker image rm real-estate-frontend:ci-check || true
+  only:
+    - develop
+    - main
+
+deploy:
+  stage: deploy
+  script:
+    - echo "Running on $(hostname)"
+    - mkdir -p "$DEPLOY_PATH"
+    - rsync -av --delete --exclude '.git' --exclude '.gitlab-ci.yml' ./ "$DEPLOY_PATH"/
+    - cd "$DEPLOY_PATH"
+    - docker compose -f docker-compose.prod.yml up -d --build
+    - docker compose -f docker-compose.prod.yml ps
+    - docker image prune -f || true
+  only:
+    - main
