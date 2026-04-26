@@ -10,6 +10,7 @@ import {
   updateApplicationStatus,
   getCompanyListings,
   createListing,
+  uploadListingMedia,
   updateProfile,
   changePassword,
   statusLabel,
@@ -616,8 +617,26 @@ function AddListingModal({ onClose, onSaved }: { onClose: () => void; onSaved: (
     deal_type: "rent", price: "", city: "",
     address: "", rooms: "", area: "", floor: "", total_floors: "",
   });
+  const [photos, setPhotos] = useState<File[]>([]);
+  const [previews, setPreviews] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+  const [uploadStep, setUploadStep] = useState("");
   const [error, setError] = useState("");
+  const photoRef = useRef<HTMLInputElement>(null);
+
+  const handlePhotos = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []).filter(f => f.type.startsWith("image/"));
+    const combined = [...photos, ...files].slice(0, 10);
+    setPhotos(combined);
+    setPreviews(combined.map(f => URL.createObjectURL(f)));
+    e.target.value = "";
+  };
+
+  const removePhoto = (idx: number) => {
+    const next = photos.filter((_, i) => i !== idx);
+    setPhotos(next);
+    setPreviews(next.map(f => URL.createObjectURL(f)));
+  };
 
   const handleSave = async () => {
     if (!form.title.trim() || !form.description.trim() || !form.price || !form.city.trim()) {
@@ -641,12 +660,24 @@ function AddListingModal({ onClose, onSaved }: { onClose: () => void; onSaved: (
         total_floors:  form.total_floors ? parseInt(form.total_floors, 10) : undefined,
       };
       const created = await createListing(payload);
+      if (photos.length > 0) {
+        for (let i = 0; i < photos.length; i++) {
+          setUploadStep(`Загрузка фото ${i + 1} из ${photos.length}...`);
+          try {
+            const media = await uploadListingMedia(created.id, photos[i], i + 1);
+            created.media = [...(created.media ?? []), media];
+          } catch {
+            // continue with remaining photos even if one fails
+          }
+        }
+      }
       onSaved(created);
       onClose();
     } catch (e) {
       setError(getErrorMessage(e));
     } finally {
       setSaving(false);
+      setUploadStep("");
     }
   };
 
@@ -721,6 +752,33 @@ function AddListingModal({ onClose, onSaved }: { onClose: () => void; onSaved: (
               <input className={s.formInput} type="number" placeholder="12" value={form.total_floors} onChange={e => f("total_floors", e.target.value)} />
             </div>
           </div>
+
+          {/* ── Photo upload ── */}
+          <div className={s.formGroup}>
+            <label className={s.formLabel}>Фотографии (до 10 шт.)</label>
+            <input ref={photoRef} type="file" accept="image/*" multiple onChange={handlePhotos} style={{ display: "none" }} />
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {previews.map((src, i) => (
+                <div key={i} style={{ position: "relative", width: 80, height: 80, borderRadius: 8, overflow: "hidden", border: "1px solid #e8e8e8" }}>
+                  <img src={src} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  <button
+                    onClick={() => removePhoto(i)}
+                    style={{ position: "absolute", top: 2, right: 2, width: 18, height: 18, borderRadius: "50%", background: "rgba(0,0,0,0.55)", border: "none", color: "#fff", fontSize: 11, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1 }}
+                  >✕</button>
+                </div>
+              ))}
+              {photos.length < 10 && (
+                <button
+                  onClick={() => photoRef.current?.click()}
+                  style={{ width: 80, height: 80, borderRadius: 8, border: "2px dashed #d0d9ff", background: "#f5f7ff", color: "#70a0ff", fontSize: 24, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+                >+</button>
+              )}
+            </div>
+          </div>
+
+          {uploadStep && (
+            <div style={{ fontSize: 13, color: "#70a0ff", padding: "6px 0" }}>{uploadStep}</div>
+          )}
           {error && (
             <div style={{ color: "#e53e3e", fontSize: 13, padding: "8px 12px", background: "#fff5f5", borderRadius: 8, border: "1px solid #fed7d7" }}>
               {error}
@@ -728,9 +786,9 @@ function AddListingModal({ onClose, onSaved }: { onClose: () => void; onSaved: (
           )}
         </div>
         <div className={s.modalFooter}>
-          <button className={s.btnCancel} onClick={onClose}>Отмена</button>
+          <button className={s.btnCancel} onClick={onClose} disabled={saving}>Отмена</button>
           <button className={s.btnSubmit} onClick={handleSave} disabled={saving}>
-            {saving ? "Сохранение..." : "Добавить →"}
+            {saving ? (uploadStep || "Сохранение...") : "Добавить →"}
           </button>
         </div>
       </div>
@@ -847,8 +905,8 @@ const AgencyDashboardContent: FunctionComponent = () => {
     setListingsLoading(true);
     setListingsError(null);
     getCompanyListings()
-      .then(data => { setListings(data); setListingsLoaded(true); })
-      .catch(e => { setListingsError(getErrorMessage(e)); setListingsLoaded(true); })
+      .then(data => { setListings(Array.isArray(data) ? data : []); setListingsLoaded(true); })
+      .catch(() => { setListings([]); setListingsLoaded(true); })
       .finally(() => setListingsLoading(false));
   }, []);
 
@@ -975,39 +1033,49 @@ const AgencyDashboardContent: FunctionComponent = () => {
       );
     }
 
-    // Otherwise show the chat list
-    if (chatsLoading) {
+    if (chatsLoading && appsLoading) {
       return <div style={{ padding: 40, textAlign: "center", color: "#939393" }}>Загрузка...</div>;
     }
 
-    if (chatsError) {
-      return (
-        <div style={{ color: "#e53e3e", fontSize: 13, padding: "12px 16px", background: "#fff5f5", borderRadius: 10, border: "1px solid #fed7d7" }}>
-          {chatsError}
-          <button onClick={loadChats} style={{ marginLeft: 12, color: "#70a0ff", background: "none", border: "none", cursor: "pointer", fontSize: 13 }}>Обновить</button>
-        </div>
-      );
-    }
+    // Build chat list: prefer chatSummaries, fallback to applications
+    const chatItems: ChatSummary[] = chatSummaries.length > 0
+      ? chatSummaries
+      : applications.map(app => ({
+          application_id: app.id,
+          listing_title:  app.listing_title ?? `Объект #${app.listing_id}`,
+          company_name:   "",
+          user_name:      app.full_name,
+          last_message:   app.comment ?? "Заявка подана",
+          last_message_at: app.updated_at,
+          is_unread:      false,
+        }));
 
-    if (chatSummaries.length === 0) {
+    if (chatItems.length === 0) {
       return (
         <div style={{ textAlign: "center", padding: "48px 24px", color: "#939393" }}>
           <div style={{ fontSize: 40, marginBottom: 12 }}>💬</div>
           <div style={{ fontSize: 15, fontWeight: 600, color: "#3a3a3a" }}>Сообщений нет</div>
-          <div style={{ fontSize: 13, color: "#b0b0b0", marginTop: 4 }}>Чаты появятся когда пользователи напишут вам</div>
+          <div style={{ fontSize: 13, color: "#b0b0b0", marginTop: 4 }}>Чаты появятся когда пользователи подадут заявки</div>
         </div>
       );
     }
 
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        {chatSummaries.map(chat => {
+        {chatItems.map(chat => {
           const senderName = chat.user_name || chat.company_name;
           return (
             <div
               key={chat.application_id}
-              style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#fff", padding: "16px 20px", borderRadius: 12, border: "1px solid #e8e8e8", cursor: "pointer" }}
-              onClick={() => setActiveChat(chat)}
+              style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: chat.is_unread ? "#f0f7ff" : "#fff", padding: "16px 20px", borderRadius: 12, border: `1px solid ${chat.is_unread ? "#c5d9ff" : "#e8e8e8"}`, cursor: "pointer" }}
+              onClick={() => {
+                if (chat.is_unread) {
+                  setChatSummaries(prev => prev.map(c =>
+                    c.application_id === chat.application_id ? { ...c, is_unread: false } : c
+                  ));
+                }
+                setActiveChat(chat);
+              }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
                 <div style={{ width: 48, height: 48, borderRadius: "50%", background: "#f0f7ff", color: "#70a0ff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 600, fontSize: 18, position: "relative", flexShrink: 0 }}>

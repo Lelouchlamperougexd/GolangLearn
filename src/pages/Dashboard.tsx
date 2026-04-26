@@ -282,12 +282,15 @@ const Dashboard: FunctionComponent = () => {
     setTimeout(() => setToast(null), 3000);
   }, []);
 
-  // Load overview on mount
+  // Load overview and chats on mount
   useEffect(() => {
     getDashboardOverview()
       .then(setOverview)
       .catch(e => setOverviewError(getErrorMessage(e)))
       .finally(() => setOverviewLoading(false));
+    getChats()
+      .then(setChats)
+      .catch(() => {});
   }, []);
 
   // Load data when tab changes
@@ -430,7 +433,7 @@ const Dashboard: FunctionComponent = () => {
             <div className={styles.summaryHeader}>
               <img src="/assets/messages.svg" alt="" style={{ width: 16 }} /> Непрочитанных
             </div>
-            <div className={styles.summaryValue}>{ov?.unread_messages_count ?? 0}</div>
+            <div className={styles.summaryValue}>{chats.filter(c => c.is_unread).length}</div>
           </div>
         </div>
 
@@ -628,7 +631,7 @@ const Dashboard: FunctionComponent = () => {
                   }
                   setActiveChat(chat);
                 }}
-                style={{ cursor: "pointer" }}
+                style={{ cursor: "pointer", background: chat.is_unread ? "#f0f7ff" : undefined, borderColor: chat.is_unread ? "#c5d9ff" : undefined }}
               >
                 <div className={styles.msgLeft}>
                   <div className={styles.msgAvatar} style={{ position: "relative" }}>
@@ -805,9 +808,9 @@ const Dashboard: FunctionComponent = () => {
             >
               <img src={item.icon} alt="" style={{ width: 18, opacity: activeTab === item.id ? 1 : 0.5 }} />
               {item.label}
-              {item.id === "messages" && (overview?.unread_messages_count ?? 0) > 0 && (
+              {item.id === "messages" && chats.filter(c => c.is_unread).length > 0 && (
                 <span style={{ marginLeft: "auto", background: "#f5222d", color: "#fff", borderRadius: "50%", width: 18, height: 18, fontSize: 11, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  {overview!.unread_messages_count}
+                  {chats.filter(c => c.is_unread).length}
                 </span>
               )}
             </div>

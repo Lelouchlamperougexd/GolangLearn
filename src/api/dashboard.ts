@@ -76,7 +76,6 @@ export interface CreateApplicationPayload {
   full_name: string;
   phone: string;
   email: string;
-  deal_type: 'rent' | 'sale';
   comment?: string;
   occupant_count?: number;
   has_children?: boolean;
@@ -228,6 +227,23 @@ export async function createListing(payload: CreateListingPayload): Promise<Comp
   return res.data.data;
 }
 
+/** POST /listings/{id}/media — upload a photo for a listing */
+export async function uploadListingMedia(
+  listingId: number,
+  file: File,
+  position: number
+): Promise<{ id: number; listing_id: number; url: string; position: number }> {
+  const form = new FormData();
+  form.append('file', file);
+  form.append('position', String(position));
+  const res = await api.post<Envelope<{ id: number; listing_id: number; url: string; position: number }>>(
+    `/listings/${listingId}/media`,
+    form,
+    { headers: { 'Content-Type': 'multipart/form-data' } }
+  );
+  return res.data.data;
+}
+
 // ─── Projects (Developer only) ────────────────────────────────────────────────
 
 export interface BackendProject {
@@ -296,6 +312,12 @@ export interface ListingsFilter {
   rooms_max?: number;
   limit?: number;
   offset?: number;
+}
+
+/** GET /listings/{id} — public listing detail */
+export async function getListing(id: number): Promise<CatalogListing> {
+  const res = await api.get<Envelope<CatalogListing>>(`/listings/${id}`);
+  return res.data.data;
 }
 
 /** GET /listings — public catalog with optional filters */

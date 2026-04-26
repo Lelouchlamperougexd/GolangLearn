@@ -1,9 +1,12 @@
-import { useState, useEffect, useCallback, type FunctionComponent } from "react";
+import { useState, useEffect, useCallback, useRef, type FunctionComponent } from "react";
 import { useNavigate } from "react-router-dom";
 import styles from "../css/Catalog.module.css";
 import type { Property } from "../components/MapComponent";
 import MapComponent from "../components/MapComponent";
 import { getListings, type CatalogListing } from "../api/dashboard";
+import { useAuth } from "../context/AuthContext";
+import Container from "./Login";
+import SignUp from "./SignUp";
 
 // City center coordinates for radius filtering
 const CITY_CENTERS: Record<string, [number, number]> = {
@@ -70,8 +73,45 @@ const DEAL_TYPES = [
 
 const CITIES = ["", "Алматы", "Астана", "Шымкент"];
 
+function getDashboardRoute(roleName: string): string {
+  if (roleName === "admin" || roleName === "moderator") return "/admin";
+  if (roleName === "agency") return "/agency";
+  if (roleName === "developer") return "/developer";
+  return "/dashboard";
+}
+
+function getRoleLabel(roleName: string): string {
+  if (roleName === "admin") return "Администратор";
+  if (roleName === "moderator") return "Модератор";
+  if (roleName === "agency") return "Агентство";
+  if (roleName === "developer") return "Застройщик";
+  return "Личный кабинет";
+}
+
 const Catalog: FunctionComponent = () => {
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
+  const [showLogin, setShowLogin] = useState(false);
+  const [showRegister, setShowRegister] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(e.target as Node)) {
+        setShowProfileMenu(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleLogout = () => {
+    setShowProfileMenu(false);
+    setLoggingOut(true);
+    setTimeout(() => { logout(); navigate("/"); setLoggingOut(false); }, 1800);
+  };
 
   // Filter state (draft — what's in the UI controls)
   const [city, setCity] = useState("");
@@ -151,21 +191,108 @@ const Catalog: FunctionComponent = () => {
 
   return (
     <div className={styles.catalogPage}>
-      {/* Header */}
-      <header className={styles.header}>
-        <div className={styles.headerLeft}>
-          <button className={styles.backButton} onClick={() => navigate("/")}>
-            ← <span style={{ marginLeft: 8 }}>Каталог объектов</span>
-          </button>
+      {/* Logout overlay */}
+      {loggingOut && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 99999, background: "#fbfbfb", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <img src="/assets/logo.png" alt="" style={{ width: 120, opacity: 0.5 }} />
         </div>
+      )}
+
+      {/* Header / Nav */}
+      <header className={styles.header}>
+        {/* Logo */}
+        <div style={{ cursor: "pointer" }} onClick={() => navigate("/")}>
+          <img src="/assets/logo.png" alt="Qonys" style={{ height: 48, objectFit: "contain" }} />
+        </div>
+
+        {/* Nav links */}
+        <nav style={{ display: "flex", gap: 24, alignItems: "center" }}>
+          <span
+            onClick={() => navigate("/")}
+            style={{ fontSize: 15, fontWeight: 500, color: "#3a3a3a", cursor: "pointer", transition: "color .2s" }}
+            onMouseEnter={e => (e.currentTarget.style.color = "#70a0ff")}
+            onMouseLeave={e => (e.currentTarget.style.color = "#3a3a3a")}
+          >Главная</span>
+          <span
+            style={{ fontSize: 15, fontWeight: 500, color: "#70a0ff", cursor: "default" }}
+          >Каталог</span>
+        </nav>
+
+        {/* Result count */}
         <div className={styles.resultCount}>
-          {loading
-            ? "Загрузка..."
-            : error
-            ? "Ошибка загрузки"
-            : `Найдено: ${filtered.length} объектов`}
+          {loading ? "Загрузка..." : error ? "Ошибка загрузки" : `Найдено: ${filtered.length} объектов`}
+        </div>
+
+        {/* Auth */}
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          {user ? (
+            <div ref={profileMenuRef} style={{ position: "relative" }}>
+              <button
+                onClick={() => setShowProfileMenu(v => !v)}
+                style={{ display: "flex", alignItems: "center", gap: 8, height: 40, padding: "0 14px", background: "#70a0ff", border: "none", borderRadius: 8, cursor: "pointer", color: "#fff", fontFamily: "Inter, sans-serif", fontSize: 14, fontWeight: 500 }}
+              >
+                <div style={{ width: 26, height: 26, borderRadius: "50%", background: "rgba(255,255,255,0.25)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700 }}>
+                  {(user.first_name || user.username || "?").charAt(0).toUpperCase()}
+                </div>
+                {user.first_name || user.username}
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+              </button>
+              {showProfileMenu && (
+                <div style={{ position: "absolute", top: "calc(100% + 8px)", right: 0, background: "#fff", borderRadius: 12, boxShadow: "0 8px 32px rgba(0,0,0,0.12)", border: "1px solid #f0f0f0", minWidth: 200, zIndex: 1000, overflow: "hidden", fontFamily: "Inter, sans-serif" }}>
+                  <div style={{ padding: "12px 16px", borderBottom: "1px solid #f5f5f5" }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "#1a1a2e" }}>{user.first_name} {user.last_name}</div>
+                    <div style={{ fontSize: 12, color: "#939393", marginTop: 2 }}>{user.email}</div>
+                    <div style={{ fontSize: 11, color: "#70a0ff", marginTop: 2, fontWeight: 500 }}>{getRoleLabel(user.role?.name ?? "")}</div>
+                  </div>
+                  <button
+                    onClick={() => { setShowProfileMenu(false); navigate(getDashboardRoute(user.role?.name ?? "")); }}
+                    style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "11px 16px", background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "#1a1a2e", fontFamily: "Inter, sans-serif", textAlign: "left" }}
+                    onMouseEnter={e => (e.currentTarget.style.background = "#f7f9fa")}
+                    onMouseLeave={e => (e.currentTarget.style.background = "none")}
+                  >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#70a0ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                    Личный кабинет
+                  </button>
+                  <button
+                    onClick={handleLogout}
+                    style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "11px 16px", background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "#f5222d", fontFamily: "Inter, sans-serif", textAlign: "left", borderTop: "1px solid #f5f5f5" }}
+                    onMouseEnter={e => (e.currentTarget.style.background = "#fff5f5")}
+                    onMouseLeave={e => (e.currentTarget.style.background = "none")}
+                  >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f5222d" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+                    Выйти
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <>
+              <button onClick={() => setShowRegister(true)} style={{ height: 40, padding: "0 16px", background: "none", border: "1.5px solid #e0e0e0", borderRadius: 8, cursor: "pointer", fontSize: 14, fontWeight: 500, color: "#3a3a3a", fontFamily: "Inter, sans-serif" }}>
+                Зарегистрироваться
+              </button>
+              <button onClick={() => setShowLogin(true)} style={{ height: 40, padding: "0 20px", background: "#70a0ff", border: "none", borderRadius: 8, cursor: "pointer", fontSize: 14, fontWeight: 500, color: "#fff", fontFamily: "Inter, sans-serif", display: "flex", alignItems: "center", gap: 8 }}>
+                <img src="/assets/Icon.svg" alt="" style={{ width: 16, height: 16 }} />
+                Войти
+              </button>
+            </>
+          )}
         </div>
       </header>
+
+      {showLogin && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ width: 500 }}>
+            <Container onClose={() => setShowLogin(false)} />
+          </div>
+        </div>
+      )}
+      {showRegister && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ width: 560 }}>
+            <SignUp onClose={() => setShowRegister(false)} />
+          </div>
+        </div>
+      )}
 
       {/* Main Content */}
       <div className={styles.content}>

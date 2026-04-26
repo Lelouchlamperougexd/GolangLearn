@@ -769,7 +769,7 @@ const Home: FunctionComponent = () => {
             </div>
           </div>
           <div className={styles.navigation}>
-            <div className={styles.link4}>
+            <div className={styles.link4} style={{ color: '#70a0ff' }}>
               <div className={styles.div18}>Главная</div>
             </div>
             <div className={styles.button9} onClick={() => navigate('/catalog')} style={{ cursor: 'pointer' }}>
