@@ -28,6 +28,7 @@ const Home: FunctionComponent = () => {
   const [showRegister, setShowRegister] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [loggingIn, setLoggingIn] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
 
   // Close dropdown when clicking outside
@@ -51,13 +52,23 @@ const Home: FunctionComponent = () => {
     }, 1800);
   };
 
+  const handleLoginSuccess = (roleName: string) => {
+    setLoggingIn(true);
+    setTimeout(() => {
+      setLoggingIn(false);
+      if (roleName === "admin" || roleName === "moderator") navigate("/admin");
+      else if (roleName === "agency") navigate("/agency");
+      else if (roleName === "developer") navigate("/developer");
+    }, 1800);
+  };
+
   return (
     <div className={styles.realEstateLandingPageIniti}>
       {/* ── Logout overlay ── */}
-      {loggingOut && (
+      {(loggingOut || loggingIn) && (
         <div style={{
           position: "fixed", inset: 0, zIndex: 99999,
-          background: "#fff",
+          background: "#fbfbfb",
           display: "flex", alignItems: "center", justifyContent: "center",
           animation: "fadeIn 0.2s ease",
         }}>
@@ -886,7 +897,7 @@ const Home: FunctionComponent = () => {
       {showLogin && (
         <div className={styles.modalOverlay}>
           <div className={styles.modalContent}>
-            <Container onClose={() => setShowLogin(false)} />
+            <Container onClose={() => setShowLogin(false)} onLoginSuccess={handleLoginSuccess} />
           </div>
         </div>
       )}

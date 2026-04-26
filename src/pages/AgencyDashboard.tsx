@@ -224,15 +224,15 @@ function AgencyChatWindow({
 // ─── LISTINGS PAGE ────────────────────────────────────────────────────────────
 
 function ListingsPage({
-  listings, loading, error, onAdd, onRefresh,
+  listings, loading, error, onAdd, onRefresh, onSelect,
 }: {
   listings: CompanyListing[];
   loading: boolean;
   error: string | null;
   onAdd: () => void;
   onRefresh: () => void;
+  onSelect: (l: CompanyListing) => void;
 }) {
-  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("Все");
   const [filterDeal, setFilterDeal] = useState("Все");
@@ -338,7 +338,7 @@ function ListingsPage({
               {pageItems.map(item => (
                 <tr key={item.id} className={s.tr} style={{ cursor: "pointer" }} onClick={e => {
                   if ((e.target as HTMLElement).closest("button")) return;
-                  navigate(`/property/${item.id}`);
+                  onSelect(item);
                 }}>
                   <td className={s.td}>
                     <div className={s.propImgPlaceholder}>
@@ -356,7 +356,7 @@ function ListingsPage({
                   <td className={s.td}>{fmtDate(item.created_at)}</td>
                   <td className={s.td}>
                     <div className={s.rowActions}>
-                      <button className={s.rowBtn} title="Просмотр" onClick={() => navigate(`/property/${item.id}`)}>
+                      <button className={s.rowBtn} title="Просмотр" onClick={() => onSelect(item)}>
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#333" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                       </button>
                     </div>
@@ -771,6 +771,7 @@ const AgencyDashboardContent: FunctionComponent = () => {
   // UI state
   const [selectedApp, setSelectedApp] = useState<Application | null>(null);
   const [activeChat, setActiveChat] = useState<ChatSummary | null>(null);
+  const [selectedListing, setSelectedListing] = useState<CompanyListing | null>(null);
 
   // Settings state
   const [profileImage, setProfileImage] = useState<string | null>(null);
@@ -847,11 +848,7 @@ const AgencyDashboardContent: FunctionComponent = () => {
     setListingsError(null);
     getCompanyListings()
       .then(data => { setListings(data); setListingsLoaded(true); })
-      .catch(() => {
-        // /listings/mine endpoint may not be deployed yet — silently use empty list
-        setListings([]);
-        setListingsLoaded(true);
-      })
+      .catch(e => { setListingsError(getErrorMessage(e)); setListingsLoaded(true); })
       .finally(() => setListingsLoading(false));
   }, []);
 
@@ -1103,6 +1100,7 @@ const AgencyDashboardContent: FunctionComponent = () => {
               error={listingsError}
               onAdd={() => setShowAddModal(true)}
               onRefresh={loadListings}
+              onSelect={setSelectedListing}
             />
           )}
           {activeTab === "applications" && (
@@ -1286,6 +1284,54 @@ const AgencyDashboardContent: FunctionComponent = () => {
             setListings(prev => [created, ...prev]);
           }}
         />
+      )}
+
+      {/* Listing Detail Modal */}
+      {selectedListing && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 999, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+          <div style={{ background: "#fff", borderRadius: 16, width: "100%", maxWidth: 540, maxHeight: "90vh", overflowY: "auto", padding: 28, boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
+              <div style={{ fontSize: 16, fontWeight: 700, color: "#1a1a2e", flex: 1, paddingRight: 16 }}>{selectedListing.title}</div>
+              <button onClick={() => setSelectedListing(null)} style={{ background: "none", border: "none", fontSize: 20, cursor: "pointer", color: "#939393", flexShrink: 0 }}>×</button>
+            </div>
+
+            {selectedListing.media?.[0]?.url && (
+              <img src={selectedListing.media[0].url} alt={selectedListing.title}
+                style={{ width: "100%", height: 200, objectFit: "cover", borderRadius: 10, marginBottom: 20 }}
+                onError={e => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+              />
+            )}
+
+            <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+              <span className={badgeClass(s, selectedListing.status)}>{listingStatusLabel(selectedListing.status)}</span>
+              <span style={{ fontSize: 12, padding: "2px 10px", borderRadius: 20, background: "#f5f5f5", color: "#595959" }}>
+                {selectedListing.deal_type === "rent" ? "Аренда" : "Продажа"}
+              </span>
+            </div>
+
+            {[
+              { label: "Цена", value: `${selectedListing.price.toLocaleString("ru-RU")} ₸` },
+              { label: "Город", value: selectedListing.city },
+              { label: "Адрес", value: selectedListing.address || "—" },
+              { label: "Тип", value: selectedListing.property_type },
+              selectedListing.rooms   ? { label: "Комнат", value: String(selectedListing.rooms) } : null,
+              selectedListing.area    ? { label: "Площадь", value: `${selectedListing.area} м²` } : null,
+              selectedListing.floor && selectedListing.total_floors ? { label: "Этаж", value: `${selectedListing.floor} / ${selectedListing.total_floors}` } : null,
+              { label: "Дата создания", value: fmtDate(selectedListing.created_at) },
+            ].filter(Boolean).map((row, i, arr) => (
+              <div key={row!.label} style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: i < arr.length - 1 ? "1px solid #f5f5f5" : "none" }}>
+                <span style={{ fontSize: 13, color: "#939393" }}>{row!.label}</span>
+                <span style={{ fontSize: 13, color: "#3a3a3a", fontWeight: 500 }}>{row!.value}</span>
+              </div>
+            ))}
+
+            {selectedListing.status === "moderation" && (
+              <div style={{ marginTop: 16, padding: "12px 16px", background: "#fffbe6", borderRadius: 8, border: "1px solid #ffe58f", fontSize: 13, color: "#7c4a00" }}>
+                ⏳ Объявление находится на модерации. После одобрения оно станет видно всем пользователям.
+              </div>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );

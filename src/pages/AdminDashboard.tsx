@@ -45,6 +45,13 @@ function formatDate(iso: string): string {
   try { return new Date(iso).toLocaleDateString("ru-RU"); } catch { return iso; }
 }
 
+function formatDateTime(iso: string): string {
+  if (!iso) return "—";
+  try {
+    return new Date(iso).toLocaleString("ru-RU", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  } catch { return iso; }
+}
+
 function formatPrice(price: number): string {
   return `${price.toLocaleString("ru-RU")} ₸`;
 }
@@ -82,6 +89,25 @@ function logCategory(targetType: string): string {
     user:      "Пользователь",
   };
   return map[targetType] || "Другое";
+}
+
+const ACTION_LABELS: Record<string, string> = {
+  block_user:              "Пользователь заблокирован",
+  unblock_user:            "Пользователь разблокирован",
+  verify_company:          "Компания верифицирована",
+  reject_company:          "Компания отклонена",
+  approve_listing:         "Объявление одобрено",
+  reject_listing:          "Объявление отклонено",
+  archive_listing:         "Объявление архивировано",
+  update_listing_status:   "Статус объявления изменён",
+  close_complaint:         "Жалоба закрыта",
+  update_complaint_status: "Статус жалобы изменён",
+  change_role:             "Роль пользователя изменена",
+  create_invite:           "Приглашение создано",
+};
+
+function isEncrypted(value: string): boolean {
+  return typeof value === "string" && value.startsWith("enc:");
 }
 
 function isElevatedRole(user: AdminUser): boolean {
@@ -923,8 +949,8 @@ function LogsPage() {
 
   const mapped = logs.map(log => ({
     ...log,
-    text:     log.details || log.action_type,
-    meta:     `${log.admin_name} (${log.admin_role}) • ${formatDate(log.created_at)}`,
+    text:     ACTION_LABELS[log.action_type] || log.action_type,
+    meta:     `${isEncrypted(log.admin_name) ? "Администратор" : log.admin_name} (${isEncrypted(log.admin_role) ? "admin" : log.admin_role}) • ${formatDateTime(log.created_at)}`,
     color:    logColor(log.action_type),
     category: logCategory(log.target_type),
   }));
