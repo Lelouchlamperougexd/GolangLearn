@@ -357,31 +357,79 @@ function ListingsPage() {
   const [items, setItems] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [updateError, setUpdateError] = useState<string | null>(null);
   const [selected, setSelected] = useState<Listing | null>(null);
+  const [statusFilter, setStatusFilter] = useState("moderation");
+  const [updating, setUpdating] = useState<number | null>(null);
 
-  useEffect(() => {
-    adminAPI.getListings()
+  const load = (status: string) => {
+    setLoading(true);
+    setError(null);
+    const params = status === "all" ? {} : { status };
+    adminAPI.getListings(params)
       .then(data => setItems(data))
       .catch(err => { console.error("GET /admin/listings:", err); setError(getApiError(err)); })
       .finally(() => setLoading(false));
-  }, []);
+  };
+
+  useEffect(() => { load(statusFilter); }, [statusFilter]);
 
   const updateStatus = async (id: number, status: string) => {
+    setUpdating(id);
+    setUpdateError(null);
     try {
       const listing = await adminAPI.updateListingStatus(id, status);
       setItems(prev => prev.map(i => i.id === id ? listing : i));
       setSelected(prev => prev?.id === id ? listing : prev);
-    } catch {}
+    } catch (err) {
+      console.error("PUT /admin/listings/.../status:", err);
+      setUpdateError(getApiError(err));
+    } finally {
+      setUpdating(null);
+    }
   };
+
+  const STATUS_FILTERS = [
+    { value: "moderation", label: "На модерации" },
+    { value: "active",     label: "Активные" },
+    { value: "rejected",   label: "Отклонённые" },
+    { value: "all",        label: "Все" },
+  ];
 
   return (
     <>
       {error && <ErrorBanner message={error} />}
+      {updateError && (
+        <div style={{ margin: "0 0 12px", padding: "10px 14px", background: "#fff1f0", border: "1px solid #ffa39e", borderRadius: 8, fontSize: 13, color: "#cf1322", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span><strong>Ошибка:</strong> {updateError}</span>
+          <button onClick={() => setUpdateError(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "#cf1322", fontSize: 16, lineHeight: 1 }}>✕</button>
+        </div>
+      )}
+
       <div className={s.pageHeader}>
-        <div className={s.pageTitle}>Объявления на модерации</div>
-        <span style={{ fontSize: 13, color: "#939393" }}>
-          В очереди: {items.filter(i => i.status === "moderation").length}
-        </span>
+        <div className={s.pageTitle}>Объявления</div>
+        <div className={s.filterRow}>
+          {STATUS_FILTERS.map(f => (
+            <button
+              key={f.value}
+              className={`${s.filterBtn} ${statusFilter === f.value ? s.filterBtnActive : ""}`}
+              onClick={() => setStatusFilter(f.value)}
+            >
+              {f.label}
+              {f.value === "moderation" && items.filter(i => i.status === "moderation").length > 0 && statusFilter !== "moderation" ? (
+                <span style={{ marginLeft: 6, background: "#f5222d", color: "#fff", borderRadius: 10, padding: "1px 6px", fontSize: 11 }}>
+                  {items.filter(i => i.status === "moderation").length}
+                </span>
+              ) : null}
+            </button>
+          ))}
+          <button
+            className={s.btnNeutral}
+            style={{ marginLeft: 8 }}
+            onClick={() => load(statusFilter)}
+            disabled={loading}
+          >↻ Обновить</button>
+        </div>
       </div>
 
       <div className={s.tableCard}>
@@ -390,21 +438,26 @@ function ListingsPage() {
             <tr>
               <th className={s.th}>Название</th>
               <th className={s.th}>Компания</th>
+              <th className={s.th}>Тип / Сделка</th>
               <th className={s.th}>Цена</th>
               <th className={s.th}>Статус</th>
-              <th className={s.th}>Дата подачи</th>
+              <th className={s.th}>Дата</th>
               <th className={s.th}>Действия</th>
             </tr>
           </thead>
           <tbody>
-            {loading && <LoadingRow cols={6} />}
-            {!loading && items.length === 0 && <EmptyRow cols={6} text="Нет объявлений" />}
-            {items.map(item => {
+            {loading && <LoadingRow cols={7} />}
+            {!loading && items.length === 0 && <EmptyRow cols={7} text="Нет объявлений" />}
+            {!loading && items.map(item => {
               const statusRu = LISTING_STATUS[item.status] || item.status;
+              const isUpdating = updating === item.id;
               return (
                 <tr key={item.id} className={`${s.tr} ${s.trClickable}`} onClick={() => setSelected(item)}>
                   <td className={s.td}><strong>{item.title}</strong></td>
-                  <td className={s.td}>{item.company_name}</td>
+                  <td className={s.td}>{item.company_name || "—"}</td>
+                  <td className={s.td} style={{ fontSize: 12, color: "#595959" }}>
+                    {item.property_type} / {item.deal_type === "rent" ? "Аренда" : "Продажа"}
+                  </td>
                   <td className={s.td}>{formatPrice(item.price)}</td>
                   <td className={s.td}><span className={statusClass(statusRu, s)}>{statusRu}</span></td>
                   <td className={s.td}>{formatDate(item.created_at)}</td>
@@ -412,12 +465,29 @@ function ListingsPage() {
                     <div className={s.actionCell}>
                       {item.status === "moderation" ? (
                         <>
-                          <button className={s.btnApprove} onClick={() => updateStatus(item.id, "active")}>Одобрить</button>
-                          <button className={s.btnReject}  onClick={() => updateStatus(item.id, "rejected")}>Отклонить</button>
+                          <button
+                            className={s.btnApprove}
+                            disabled={isUpdating}
+                            style={{ opacity: isUpdating ? 0.6 : 1 }}
+                            onClick={() => updateStatus(item.id, "active")}
+                          >{isUpdating ? "..." : "Одобрить"}</button>
+                          <button
+                            className={s.btnReject}
+                            disabled={isUpdating}
+                            style={{ opacity: isUpdating ? 0.6 : 1 }}
+                            onClick={() => updateStatus(item.id, "rejected")}
+                          >{isUpdating ? "..." : "Отклонить"}</button>
                         </>
+                      ) : item.status === "active" ? (
+                        <button
+                          className={s.btnReject}
+                          disabled={isUpdating}
+                          style={{ opacity: isUpdating ? 0.6 : 1, fontSize: 12 }}
+                          onClick={() => updateStatus(item.id, "archived")}
+                        >{isUpdating ? "..." : "Архивировать"}</button>
                       ) : (
                         <span className={s.actionStatusText}>
-                          {item.status === "active" ? "✓ Активно" : item.status === "rejected" ? "✕ Отклонено" : statusRu}
+                          {item.status === "rejected" ? "✕ Отклонено" : statusRu}
                         </span>
                       )}
                     </div>
@@ -431,28 +501,44 @@ function ListingsPage() {
 
       {selected && (() => {
         const statusRu = LISTING_STATUS[selected.status] || selected.status;
+        const isUpdating = updating === selected.id;
         return (
           <Modal title={selected.title} onClose={() => setSelected(null)}>
-            <Detail label="Компания">{selected.company_name}</Detail>
+            {/* Preview image */}
+            {selected.media && selected.media.length > 0 && (
+              <img
+                src={selected.media[0].url}
+                alt={selected.title}
+                style={{ width: "100%", height: 180, objectFit: "cover", borderRadius: 8, marginBottom: 16 }}
+                onError={e => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+              />
+            )}
+            <Detail label="Компания">{selected.company_name || "—"}</Detail>
             <Detail label="Цена"><span className={s.detailPrice}>{formatPrice(selected.price)}</span></Detail>
             <Detail label="Статус"><span className={statusClass(statusRu, s)}>{statusRu}</span></Detail>
-            <Detail label="Тип сделки">{selected.deal_type}</Detail>
+            <Detail label="Тип сделки">{selected.deal_type === "rent" ? "Аренда" : "Продажа"}</Detail>
             <Detail label="Тип недвижимости">{selected.property_type}</Detail>
-            <Detail label="Адрес">{selected.address}, {selected.city}</Detail>
-            <Detail label="Площадь">{selected.area} м²</Detail>
+            <Detail label="Город">{selected.city}</Detail>
+            <Detail label="Адрес">{selected.address || "—"}</Detail>
+            {selected.area   && <Detail label="Площадь">{selected.area} м²</Detail>}
+            {selected.rooms  && <Detail label="Комнат">{selected.rooms}</Detail>}
+            {selected.floor  && selected.total_floors && <Detail label="Этаж">{selected.floor} / {selected.total_floors}</Detail>}
             <Detail label="Дата подачи">{formatDate(selected.created_at)}</Detail>
+
             {selected.status === "moderation" && (
-              <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+              <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
                 <button
                   className={s.btnApprove}
-                  style={{ fontSize: 13, padding: "8px 20px" }}
-                  onClick={() => { updateStatus(selected.id, "active"); setSelected(null); }}
-                >Одобрить</button>
+                  style={{ fontSize: 13, padding: "8px 20px", opacity: isUpdating ? 0.6 : 1 }}
+                  disabled={isUpdating}
+                  onClick={() => updateStatus(selected.id, "active")}
+                >{isUpdating ? "Обработка..." : "✓ Одобрить"}</button>
                 <button
                   className={s.btnReject}
-                  style={{ fontSize: 13, padding: "8px 20px" }}
-                  onClick={() => { updateStatus(selected.id, "rejected"); setSelected(null); }}
-                >Отклонить</button>
+                  style={{ fontSize: 13, padding: "8px 20px", opacity: isUpdating ? 0.6 : 1 }}
+                  disabled={isUpdating}
+                  onClick={() => updateStatus(selected.id, "rejected")}
+                >{isUpdating ? "Обработка..." : "✕ Отклонить"}</button>
               </div>
             )}
           </Modal>
