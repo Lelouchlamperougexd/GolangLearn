@@ -89,6 +89,20 @@ export async function registerCompany(payload: RegisterCompanyPayload): Promise<
   return res.data.data;
 }
 
+/** POST /authentication/password-reset/request — send reset code to email */
+export async function requestPasswordReset(email: string): Promise<void> {
+  await api.post('/authentication/password-reset/request', { email });
+}
+
+/** PUT /authentication/password-reset/confirm — confirm code and set new password */
+export async function confirmPasswordReset(payload: {
+  token: string;
+  password: string;
+  password_confirmation: string;
+}): Promise<void> {
+  await api.put('/authentication/password-reset/confirm', payload);
+}
+
 /** GET /authentication/me — get current user profile */
 export async function getMe(): Promise<User> {
   const res = await api.get<BackendEnvelope<User>>('/authentication/me');

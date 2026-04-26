@@ -7,6 +7,8 @@ import Dashboard from "./pages/Dashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import AgencyDashboard from "./pages/AgencyDashboard";
 import DeveloperDashboard from "./pages/DeveloperDashboard";
+import RegisterByInvite from "./pages/RegisterByInvite";
+import ResetPassword from "./pages/ResetPassword";
 import type { ReactNode } from "react";
 
 // ── Role-guard: allowed only for the specified role names ────────────────────
@@ -71,6 +73,12 @@ function AppRoutes() {
           </RoleRoute>
         }
       />
+
+      {/* Invite registration */}
+      <Route path="/register/:token" element={<RegisterByInvite />} />
+
+      {/* Password reset via email link */}
+      <Route path="/reset-password/:token" element={<ResetPassword />} />
 
       {/* Catch-all */}
       <Route path="*" element={<Navigate to="/" replace />} />
