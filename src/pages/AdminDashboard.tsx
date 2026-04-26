@@ -213,7 +213,7 @@ function CompaniesPage() {
 
   useEffect(() => {
     adminAPI.getCompanies()
-      .then(data => setItems(data))
+      .then(data => setItems(Array.isArray(data) ? data : []))
       .catch(err => { console.error("GET /admin/companies:", err); setError(getApiError(err)); })
       .finally(() => setLoading(false));
   }, []);
@@ -391,8 +391,11 @@ function ListingsPage() {
   const load = (status: string) => {
     setLoading(true);
     setError(null);
-    const params = status === "all" ? {} : { status };
-    adminAPI.getListings(params)
+    const statuses = ["moderation", "active", "rejected"];
+    const fetches = status === "all"
+      ? Promise.all(statuses.map(s => adminAPI.getListings({ status: s }).then(d => Array.isArray(d) ? d : []))).then(results => results.flat())
+      : adminAPI.getListings({ status }).then(d => Array.isArray(d) ? d : []);
+    fetches
       .then(data => setItems(data))
       .catch(err => { console.error("GET /admin/listings:", err); setError(getApiError(err)); })
       .finally(() => setLoading(false));
@@ -588,7 +591,7 @@ function ComplaintsPage() {
 
   useEffect(() => {
     adminAPI.getComplaints()
-      .then(data => setItems(data))
+      .then(data => setItems(Array.isArray(data) ? data : []))
       .catch(err => { console.error("GET /admin/complaints:", err); setError(getApiError(err)); })
       .finally(() => setLoading(false));
   }, []);
@@ -786,7 +789,7 @@ function UsersPage() {
 
   useEffect(() => {
     adminAPI.getUsers()
-      .then(data => setItems(data))
+      .then(data => setItems(Array.isArray(data) ? data : []))
       .catch(err => { console.error("GET /admin/users:", err); setError(getApiError(err)); })
       .finally(() => setLoading(false));
   }, []);

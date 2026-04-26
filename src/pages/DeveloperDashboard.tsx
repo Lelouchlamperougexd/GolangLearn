@@ -179,22 +179,6 @@ function DevChatWindow({ chat, userId, onBack }: { chat: ChatSummary; userId: nu
 
 // ─── STATUS HELPERS ───────────────────────────────────────────────────────────
 
-function projStatusLabel(status: string) {
-  const m: Record<string, string> = { active: "Активный", construction: "В строительстве", completed: "Сдан", draft: "Черновик" };
-  return m[status] ?? status;
-}
-
-function projStatusBadge(status: string) {
-  const styles: Record<string, { bg: string; color: string; border: string }> = {
-    active:       { bg: "#f6ffed", color: "#389e0d", border: "#b7eb8f" },
-    construction: { bg: "#e8f4ff", color: "#1890ff", border: "#91d5ff" },
-    completed:    { bg: "#f0f3ff", color: "#5b73e8", border: "#b3c0f7" },
-    draft:        { bg: "#f5f5f5", color: "#595959", border: "#d9d9d9" },
-  };
-  const st = styles[status] ?? styles.draft;
-  return { background: st.bg, color: st.color, border: `1px solid ${st.border}` };
-}
-
 function objStatusLabel(status: string) {
   const m: Record<string, string> = { active: "Активно", moderation: "На модерации", draft: "Черновик", reserved: "Забронировано", sold: "Продано" };
   return m[status] ?? status;

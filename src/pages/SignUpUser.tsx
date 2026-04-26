@@ -2,7 +2,7 @@ import { useState, type FunctionComponent } from "react";
 import { useNavigate } from "react-router-dom";
 import styles from "../css/SignUp.module.css";
 import { registerUser, getErrorMessage } from "../api/auth";
-import { useAuth } from "../context/AuthContext";
+import { useAuth, type User } from "../context/AuthContext";
 
 type Props = {
   onClose: () => void;
@@ -54,7 +54,7 @@ const SignUpUser: FunctionComponent<Props> = ({ onClose, onBack }) => {
 
       // Auto-login: extract token from response
       const { token, ...user } = data;
-      login(token, user);
+      login(token, user as User);
 
       onClose();
       navigate("/dashboard");

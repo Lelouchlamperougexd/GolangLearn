@@ -2,7 +2,7 @@ import { useState, type FunctionComponent } from "react";
 import { useNavigate } from "react-router-dom";
 import styles from "../css/SignUp.module.css";
 import { registerCompany, getErrorMessage } from "../api/auth";
-import { useAuth } from "../context/AuthContext";
+import { useAuth, type User } from "../context/AuthContext";
 
 type Props = {
   role?: "agency" | "developer";
@@ -68,7 +68,7 @@ const SignUpCompany: FunctionComponent<Props> = ({ role = "agency", onClose, onB
       });
 
       const { token, ...user } = data;
-      login(token, user);
+      login(token, user as User);
       setSubmitted(true);
     } catch (err) {
       setError(getErrorMessage(err));

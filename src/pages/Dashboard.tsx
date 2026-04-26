@@ -621,7 +621,13 @@ const Dashboard: FunctionComponent = () => {
               <div
                 key={chat.application_id}
                 className={styles.messageCard}
-                onClick={() => setActiveChat(chat)}
+                onClick={() => {
+                  if (chat.is_unread) {
+                    setChats(prev => prev.map(c => c.application_id === chat.application_id ? { ...c, is_unread: false } : c));
+                    setOverview(prev => prev ? { ...prev, unread_messages_count: Math.max(0, prev.unread_messages_count - 1) } : prev);
+                  }
+                  setActiveChat(chat);
+                }}
                 style={{ cursor: "pointer" }}
               >
                 <div className={styles.msgLeft}>
