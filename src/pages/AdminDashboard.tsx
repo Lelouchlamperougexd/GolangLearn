@@ -9,9 +9,6 @@ import {
 
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
 
-// Adjust these to match your backend's role IDs
-const USER_ROLE_ID      = 3;
-const MODERATOR_ROLE_ID = 2;
 
 const COMPANY_STATUS: Record<string, string> = {
   pending:  "На проверке",
