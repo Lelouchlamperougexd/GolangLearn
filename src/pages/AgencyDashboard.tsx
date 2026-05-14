@@ -417,14 +417,17 @@ function ListingsPage({
 // ─── APPLICATIONS PAGE ────────────────────────────────────────────────────────
 
 function AgencyApplicationsPage({
-  applications, loading, error, onOpenApp, onRefresh,
+  applications, loading, error, onOpenApp, onRefresh, onStatusChange,
 }: {
   applications: Application[];
   loading: boolean;
   error: string | null;
   onOpenApp: (app: Application) => void;
   onRefresh: () => void;
+  onStatusChange: (id: number, status: 'new' | 'review' | 'approved' | 'rejected') => void;
 }) {
+  const [openMenuId, setOpenMenuId] = useState<number | null>(null);
+  const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(null);
   const newCount    = applications.filter(a => a.status === "new").length;
   const reviewCount = applications.filter(a => a.status === "review").length;
 
@@ -495,12 +498,19 @@ function AgencyApplicationsPage({
                       {statusLabel(a.status)}
                     </span>
                   </td>
-                  <td className={s.td}>
-                    <div className={s.rowActions}>
-                      <button className={s.rowBtn} onClick={() => onOpenApp(a)}>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-                      </button>
-                    </div>
+                  <td className={s.td} onClick={e => e.stopPropagation()}>
+                    <button
+                      onClick={e => {
+                        e.stopPropagation();
+                        if (openMenuId === a.id) { setOpenMenuId(null); setMenuPos(null); return; }
+                        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                        setMenuPos({ top: rect.bottom + 4, right: window.innerWidth - rect.right });
+                        setOpenMenuId(a.id);
+                      }}
+                      style={{ background: "none", border: "none", cursor: "pointer", padding: "4px 8px", borderRadius: 6, color: "#595959", fontSize: 20, lineHeight: 1, display: "flex", alignItems: "center" }}
+                    >
+                      ⋮
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -508,6 +518,41 @@ function AgencyApplicationsPage({
           </table>
         )}
       </div>
+
+      {/* Three-dot dropdown — fixed position outside table overflow */}
+      {openMenuId !== null && menuPos && (() => {
+        const a = applications.find(x => x.id === openMenuId);
+        if (!a) return null;
+        return (
+          <>
+            <div style={{ position: "fixed", inset: 0, zIndex: 99 }} onClick={() => { setOpenMenuId(null); setMenuPos(null); }} />
+            <div style={{ position: "fixed", top: menuPos.top, right: menuPos.right, zIndex: 100, background: "#fff", border: "1px solid #e8e8e8", borderRadius: 10, boxShadow: "0 4px 20px rgba(0,0,0,0.12)", minWidth: 190, padding: "6px 0" }}>
+              <button onClick={() => { onOpenApp(a); setOpenMenuId(null); setMenuPos(null); }} style={{ width: "100%", textAlign: "left", background: "none", border: "none", padding: "9px 16px", fontSize: 14, color: "#1a1a2e", cursor: "pointer", display: "flex", alignItems: "center", gap: 10 }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                Просмотреть
+              </button>
+              {a.status !== "approved" && (
+                <button onClick={() => { onStatusChange(a.id, "approved"); setOpenMenuId(null); setMenuPos(null); }} style={{ width: "100%", textAlign: "left", background: "none", border: "none", padding: "9px 16px", fontSize: 14, color: "#52c97a", cursor: "pointer", display: "flex", alignItems: "center", gap: 10 }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#52c97a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  Одобрить
+                </button>
+              )}
+              {a.status !== "review" && (
+                <button onClick={() => { onStatusChange(a.id, "review"); setOpenMenuId(null); setMenuPos(null); }} style={{ width: "100%", textAlign: "left", background: "none", border: "none", padding: "9px 16px", fontSize: 14, color: "#70a0ff", cursor: "pointer", display: "flex", alignItems: "center", gap: 10 }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#70a0ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+                  На рассмотрение
+                </button>
+              )}
+              {a.status !== "rejected" && (
+                <button onClick={() => { onStatusChange(a.id, "rejected"); setOpenMenuId(null); setMenuPos(null); }} style={{ width: "100%", textAlign: "left", background: "none", border: "none", padding: "9px 16px", fontSize: 14, color: "#f5222d", cursor: "pointer", display: "flex", alignItems: "center", gap: 10 }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f5222d" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  Отклонить
+                </button>
+              )}
+            </div>
+          </>
+        );
+      })()}
     </>
   );
 }
@@ -1240,6 +1285,7 @@ const AgencyDashboardContent: FunctionComponent = () => {
               error={appsError}
               onOpenApp={setSelectedApp}
               onRefresh={loadApplications}
+              onStatusChange={handleStatusChange}
             />
           )}
           {activeTab === "messages"     && renderMessages()}
