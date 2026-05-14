@@ -1424,15 +1424,15 @@ const DeveloperDashboardContent: FunctionComponent = () => {
 
         <div style={{ marginTop: "auto", padding: "16px 12px", borderTop: "1px solid #f0f0f0" }}>
           {/* User info */}
-          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", marginBottom: 4 }}>
-            <div style={{ width: 34, height: 34, borderRadius: 8, background: "linear-gradient(135deg, #5b73e8, #4a60d4)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 13, fontWeight: 600, flexShrink: 0, overflow: "hidden" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+            <div style={{ width: 34, height: 34, borderRadius: "50%", background: "linear-gradient(135deg, #5b73e8, #4a60d4)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 13, fontWeight: 700, flexShrink: 0, overflow: "hidden" }}>
               {profileImage
                 ? <img src={profileImage} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                : (user?.first_name ?? "З").charAt(0)}
+                : (user?.first_name?.charAt(0) ?? "") + (user?.last_name?.charAt(0) ?? "")}
             </div>
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 500, color: "#1a1a2e" }}>{user?.first_name} {user?.last_name}</div>
-              <div style={{ fontSize: 11, color: "#939393" }}>Застройщик</div>
+            <div style={{ overflow: "hidden" }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "#1a1a2e", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{user?.first_name} {user?.last_name}</div>
+              <div style={{ fontSize: 11, color: "#939393", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{user?.email}</div>
             </div>
           </div>
           <div className={s.navItem} onClick={() => { logout(); navigate("/"); }} style={{ color: "#f5222d", cursor: "pointer" }}>

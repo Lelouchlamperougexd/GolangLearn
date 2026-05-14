@@ -1181,7 +1181,20 @@ const AgencyDashboardContent: FunctionComponent = () => {
             </div>
           ))}
         </nav>
-        <div style={{ marginTop: "auto", padding: "16px 12px", borderTop: "1px solid #f0f0f0" }}>
+        <div style={{ marginTop: "auto", padding: "12px 16px", borderTop: "1px solid #f0f0f0" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+            <div style={{ width: 34, height: 34, borderRadius: "50%", background: "linear-gradient(135deg, #5b73e8, #4a60d4)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: "#fff", flexShrink: 0, overflow: "hidden" }}>
+              {profileImage
+                ? <img src={profileImage} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                : (user?.first_name?.charAt(0) ?? "") + (user?.last_name?.charAt(0) ?? "")}
+            </div>
+            <div style={{ overflow: "hidden" }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "#1a1a2e", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                {user?.first_name} {user?.last_name}
+              </div>
+              <div style={{ fontSize: 11, color: "#939393", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{user?.email}</div>
+            </div>
+          </div>
           <div className={s.navItem} onClick={() => { logout(); navigate("/"); }} style={{ color: "#f5222d", cursor: "pointer" }}>
             <span className={s.navItemIcon} style={{ display: "flex", alignItems: "center", opacity: 1, color: "#f5222d" }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
