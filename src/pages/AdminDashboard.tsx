@@ -391,10 +391,13 @@ function ListingsPage() {
   const load = (status: string) => {
     setLoading(true);
     setError(null);
-    const statuses = ["moderation", "active", "rejected"];
+    const allStatuses = ["moderation", "active", "rejected", "archived"];
+    const rejectedStatuses = ["rejected", "archived"];
     const fetches = status === "all"
-      ? Promise.all(statuses.map(s => adminAPI.getListings({ status: s }).then(d => Array.isArray(d) ? d : []))).then(results => results.flat())
-      : adminAPI.getListings({ status }).then(d => Array.isArray(d) ? d : []);
+      ? Promise.all(allStatuses.map(s => adminAPI.getListings({ status: s }).then(d => Array.isArray(d) ? d : []))).then(r => r.flat())
+      : status === "rejected"
+        ? Promise.all(rejectedStatuses.map(s => adminAPI.getListings({ status: s }).then(d => Array.isArray(d) ? d : []))).then(r => r.flat())
+        : adminAPI.getListings({ status }).then(d => Array.isArray(d) ? d : []);
     fetches
       .then(data => setItems(data))
       .catch(err => { console.error("GET /admin/listings:", err); setError(getApiError(err)); })
@@ -408,8 +411,13 @@ function ListingsPage() {
     setUpdateError(null);
     try {
       const listing = await adminAPI.updateListingStatus(id, status);
-      setItems(prev => prev.map(i => i.id === id ? listing : i));
-      setSelected(prev => prev?.id === id ? listing : prev);
+      if (status === "archived" && statusFilter !== "rejected" && statusFilter !== "all") {
+        setItems(prev => prev.filter(i => i.id !== id));
+        setSelected(prev => prev?.id === id ? null : prev);
+      } else {
+        setItems(prev => prev.map(i => i.id === id ? listing : i));
+        setSelected(prev => prev?.id === id ? listing : prev);
+      }
     } catch (err) {
       console.error("PUT /admin/listings/.../status:", err);
       setUpdateError(getApiError(err));
@@ -516,7 +524,7 @@ function ListingsPage() {
                         >{isUpdating ? "..." : "Архивировать"}</button>
                       ) : (
                         <span className={s.actionStatusText}>
-                          {item.status === "rejected" ? "✕ Отклонено" : statusRu}
+                          {item.status === "rejected" ? "✕ Отклонено" : item.status === "archived" ? "📦 Архив" : statusRu}
                         </span>
                       )}
                     </div>
