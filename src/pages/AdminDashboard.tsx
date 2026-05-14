@@ -810,17 +810,6 @@ function UsersPage() {
     } catch {}
   };
 
-  const changeRole = async (user: AdminUser) => {
-    const newRoleId = isElevatedRole(user) ? USER_ROLE_ID : MODERATOR_ROLE_ID;
-    try {
-      await adminAPI.updateUserRole(user.id, newRoleId);
-      setItems(prev => prev.map(u => u.id === user.id ? {
-        ...u,
-        role_id: newRoleId,
-        role: { ...u.role, id: newRoleId, name: isElevatedRole(u) ? "user" : "moderator" },
-      } : u));
-    } catch {}
-  };
 
   const filtered = search.trim()
     ? items.filter(u => {
@@ -865,7 +854,6 @@ function UsersPage() {
               const roleLabel = displayRole(u);
               const elevated  = isElevatedRole(u);
               const statusRu  = u.is_active ? "Активен" : "Заблокирован";
-              const isAdmin   = u.role?.name === "admin";
               return (
                 <Fragment key={u.id}>
                   <tr className={s.tr}>
