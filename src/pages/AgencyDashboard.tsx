@@ -860,7 +860,7 @@ const AgencyDashboardContent: FunctionComponent = () => {
   const [chatsLoading, setChatsLoading] = useState(false);
   const [appsError, setAppsError] = useState<string | null>(null);
   const [listingsError, setListingsError] = useState<string | null>(null);
-  const [chatsError, setChatsError] = useState<string | null>(null);
+  const [, setChatsError] = useState<string | null>(null);
 
   // UI state
   const [selectedApp, setSelectedApp] = useState<Application | null>(null);
