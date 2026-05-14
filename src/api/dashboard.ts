@@ -245,6 +245,11 @@ export async function updateListing(id: number, payload: Partial<CreateListingPa
   return res.data.data;
 }
 
+/** DELETE /listings/{id} — delete a listing */
+export async function deleteListing(id: number): Promise<void> {
+  await api.delete(`/listings/${id}`);
+}
+
 /** POST /listings/{id}/media — upload a photo for a listing */
 export async function uploadListingMedia(
   listingId: number,

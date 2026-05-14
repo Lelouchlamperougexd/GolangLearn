@@ -11,6 +11,7 @@ import {
   getCompanyListings,
   createListing,
   updateListing,
+  deleteListing,
   getListing,
   uploadListingMedia,
   updateProfile,
@@ -262,6 +263,7 @@ function ListingsPage({
   onRefresh: () => void;
   onSelect: (l: CompanyListing) => void;
   onEdit: (l: CompanyListing) => void;
+  onDelete: (id: number) => void;
 }) {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("Все");
@@ -391,6 +393,9 @@ function ListingsPage({
                       </button>
                       <button className={s.rowBtn} title="Редактировать" onClick={() => onEdit(item)}>
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#333" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                      </button>
+                      <button className={s.rowBtn} title="Удалить" onClick={() => onDelete(item.id)}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e53e3e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
                       </button>
                     </div>
                   </td>
@@ -1257,6 +1262,16 @@ const AgencyDashboardContent: FunctionComponent = () => {
 
   // ── Status update ─────────────────────────────────────────────────────────
 
+  const handleDeleteListing = async (id: number) => {
+    if (!window.confirm("Удалить объявление? Это действие нельзя отменить.")) return;
+    try {
+      await deleteListing(id);
+      setListings(prev => prev.filter(l => l.id !== id));
+    } catch {
+      alert("Не удалось удалить объявление");
+    }
+  };
+
   const handleStatusChange = async (id: number, status: 'new' | 'review' | 'approved' | 'rejected') => {
     const updated = await updateApplicationStatus(id, status);
     setApplications(prev => prev.map(a => a.id === id ? updated : a));
@@ -1504,6 +1519,7 @@ const AgencyDashboardContent: FunctionComponent = () => {
               onRefresh={loadListings}
               onSelect={setSelectedListing}
               onEdit={setEditingListing}
+              onDelete={handleDeleteListing}
             />
           )}
           {activeTab === "applications" && (
@@ -1760,7 +1776,13 @@ const AgencyDashboardContent: FunctionComponent = () => {
                 ⏳ Объявление находится на модерации. После одобрения оно станет видно всем пользователям.
               </div>
             )}
-            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 20 }}>
+            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 20 }}>
+              <button
+                onClick={() => { handleDeleteListing(selectedListing.id); setSelectedListing(null); }}
+                style={{ fontSize: 13, padding: "8px 18px", borderRadius: 8, border: "1px solid #fed7d7", background: "#fff5f5", color: "#e53e3e", cursor: "pointer", fontWeight: 500 }}
+              >
+                Удалить
+              </button>
               <button
                 className={s.btnAdd}
                 onClick={() => { setSelectedListing(null); setEditingListing(selectedListing); }}
