@@ -889,15 +889,6 @@ function UsersPage() {
                         ) : (
                           <button className={s.btnApprove} onClick={() => setStatus(u.id, true)}>Разблокировать</button>
                         )}
-                        <button
-                          className={s.btnNeutral}
-                          onClick={() => changeRole(u)}
-                          disabled={!u.is_active || isAdmin}
-                          title={isAdmin ? "Нельзя менять роль администратора" : !u.is_active ? "Нельзя менять роль заблокированному" : "Сменить роль"}
-                          style={{ opacity: (!u.is_active || isAdmin) ? 0.35 : 1, cursor: (!u.is_active || isAdmin) ? "not-allowed" : "pointer" }}
-                        >
-                          {elevated ? "→ Пользователь" : "→ Модератор"}
-                        </button>
                       </div>
                     </td>
                   </tr>
