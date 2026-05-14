@@ -223,6 +223,8 @@ export interface CreateListingPayload {
   area?: number;
   floor?: number;
   total_floors?: number;
+  latitude?: number;
+  longitude?: number;
 }
 
 /** GET /listings/mine — company's own listings (all statuses) */

@@ -24,6 +24,7 @@ import {
 } from "../api/dashboard";
 import { getErrorMessage } from "../api/auth";
 import { markChatRead, applyReadStatus } from "../utils/chatRead";
+import MapPicker from "../components/MapPicker";
 import s from "../css/AgencyDashboard.module.css";
 
 const logo = "/assets/logo.png";
@@ -639,11 +640,12 @@ function AddListingModal({ onClose, onSaved }: { onClose: () => void; onSaved: (
     address: string; rooms: string; area: string; floor: string; total_floors: string;
   }>({
     title: "", description: "", property_type: "apartment",
-    deal_type: "rent", price: "", city: "",
+    deal_type: "rent", price: "", city: "Алматы",
     address: "", rooms: "", area: "", floor: "", total_floors: "",
   });
   const [photos, setPhotos] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploadStep, setUploadStep] = useState("");
   const [error, setError] = useState("");
@@ -683,6 +685,8 @@ function AddListingModal({ onClose, onSaved }: { onClose: () => void; onSaved: (
         area:          form.area ? parseFloat(form.area) : undefined,
         floor:         form.floor ? parseInt(form.floor, 10) : undefined,
         total_floors:  form.total_floors ? parseInt(form.total_floors, 10) : undefined,
+        latitude:      coords?.lat,
+        longitude:     coords?.lng,
       };
       const created = await createListing(payload);
       if (photos.length > 0) {
@@ -750,12 +754,19 @@ function AddListingModal({ onClose, onSaved }: { onClose: () => void; onSaved: (
             </div>
             <div className={s.formGroup}>
               <label className={s.formLabel}>Город *</label>
-              <input className={s.formInput} placeholder="Алматы" value={form.city} onChange={e => f("city", e.target.value)} />
+              <select className={s.formSelect} value={form.city} onChange={e => { f("city", e.target.value); setCoords(null); }}>
+                <option value="Алматы">Алматы</option>
+                <option value="Астана">Астана</option>
+              </select>
             </div>
           </div>
           <div className={s.formGroup}>
             <label className={s.formLabel}>Адрес</label>
             <input className={s.formInput} placeholder="пр. Абая, 1" value={form.address} onChange={e => f("address", e.target.value)} />
+          </div>
+          <div className={s.formGroup}>
+            <label className={s.formLabel}>Местоположение на карте</label>
+            <MapPicker value={coords} onChange={setCoords} city={form.city} />
           </div>
           <div className={s.formRow}>
             <div className={s.formGroup}>

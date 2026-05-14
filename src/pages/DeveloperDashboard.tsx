@@ -27,6 +27,7 @@ import {
 } from "../api/dashboard";
 import { getErrorMessage } from "../api/auth";
 import { markChatRead, applyReadStatus } from "../utils/chatRead";
+import MapPicker from "../components/MapPicker";
 import s from "../css/DeveloperDashboard.module.css";
 
 const logo = "/assets/logo.png";
@@ -668,11 +669,12 @@ function AddObjectModal({ onClose, onSaved, projects }: { onClose: () => void; o
     price: string; city: string; address: string; rooms: string; area: string; floor: string; total_floors: string; project_id: string;
   }>({
     title: "", description: "", property_type: "apartment", deal_type: "sale",
-    price: "", city: "", address: "", rooms: "", area: "", floor: "", total_floors: "",
+    price: "", city: "Алматы", address: "", rooms: "", area: "", floor: "", total_floors: "",
     project_id: projects[0] ? String(projects[0].id) : "",
   });
   const [photos, setPhotos] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploadStep, setUploadStep] = useState("");
   const [error, setError] = useState("");
@@ -714,6 +716,8 @@ function AddObjectModal({ onClose, onSaved, projects }: { onClose: () => void; o
         floor:         form.floor ? parseInt(form.floor, 10) : undefined,
         total_floors:  form.total_floors ? parseInt(form.total_floors, 10) : undefined,
         project_id:    form.project_id ? parseInt(form.project_id, 10) : undefined,
+        latitude:      coords?.lat,
+        longitude:     coords?.lng,
       };
       const created = await createListing(payload as CreateListingPayload);
       if (photos.length > 0) {
@@ -787,12 +791,19 @@ function AddObjectModal({ onClose, onSaved, projects }: { onClose: () => void; o
             </div>
             <div className={s.formGroup}>
               <label className={s.formLabel}>Город *</label>
-              <input className={s.formInput} placeholder="Алматы" value={form.city} onChange={e => f("city", e.target.value)} />
+              <select className={s.formSelect} value={form.city} onChange={e => { f("city", e.target.value); setCoords(null); }}>
+                <option value="Алматы">Алматы</option>
+                <option value="Астана">Астана</option>
+              </select>
             </div>
           </div>
           <div className={s.formGroup}>
             <label className={s.formLabel}>Адрес</label>
             <input className={s.formInput} placeholder="пр. Абая, 1" value={form.address} onChange={e => f("address", e.target.value)} />
+          </div>
+          <div className={s.formGroup}>
+            <label className={s.formLabel}>Местоположение на карте</label>
+            <MapPicker value={coords} onChange={setCoords} city={form.city} />
           </div>
           <div className={s.formRow}>
             <div className={s.formGroup}>
