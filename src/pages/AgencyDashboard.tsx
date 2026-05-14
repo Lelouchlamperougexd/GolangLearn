@@ -22,6 +22,7 @@ import {
   type CreateListingPayload,
 } from "../api/dashboard";
 import { getErrorMessage } from "../api/auth";
+import { markChatRead, applyReadStatus } from "../utils/chatRead";
 import s from "../css/AgencyDashboard.module.css";
 
 const logo = "/assets/logo.png";
@@ -40,6 +41,17 @@ function fmtTime(iso: string) {
   try {
     return new Intl.DateTimeFormat("ru-RU", { hour: "2-digit", minute: "2-digit" }).format(new Date(iso));
   } catch { return ""; }
+}
+
+function fmtDateLabel(iso: string): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const today = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(today.getDate() - 1);
+  if (d.toDateString() === today.toDateString()) return "Сегодня";
+  if (d.toDateString() === yesterday.toDateString()) return "Вчера";
+  return new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "long" }).format(d);
 }
 
 function listingStatusLabel(status: string): string {
@@ -179,9 +191,20 @@ function AgencyChatWindow({
             Сообщений пока нет. Начните диалог первыми.
           </div>
         )}
-        {messages.map(msg => {
+        {messages.reduce<React.ReactNode[]>((acc, msg, i) => {
+          const msgDay = msg.created_at.slice(0, 10);
+          const prevDay = i > 0 ? messages[i - 1].created_at.slice(0, 10) : null;
+          if (msgDay !== prevDay) {
+            acc.push(
+              <div key={`sep-${msgDay}`} style={{ textAlign: "center", fontSize: 12, color: "#b0b0b0", margin: "12px 0", userSelect: "none", alignSelf: "center" }}>
+                <span style={{ background: "#f0f0f0", padding: "2px 12px", borderRadius: 10 }}>
+                  {fmtDateLabel(msg.created_at)}
+                </span>
+              </div>
+            );
+          }
           const isSent = msg.sender_user_id === userId;
-          return (
+          acc.push(
             <div key={msg.id} style={{ alignSelf: isSent ? "flex-end" : "flex-start", maxWidth: "70%" }}>
               <div style={{
                 padding: "12px 16px", borderRadius: isSent ? "16px 16px 0 16px" : "16px 16px 16px 0",
@@ -193,7 +216,8 @@ function AgencyChatWindow({
               </div>
             </div>
           );
-        })}
+          return acc;
+        }, [])}
         <div ref={bottomRef} />
       </div>
 
@@ -914,7 +938,7 @@ const AgencyDashboardContent: FunctionComponent = () => {
     setChatsLoading(true);
     setChatsError(null);
     getChats()
-      .then(data => { setChatSummaries(data); setChatsLoaded(true); })
+      .then(data => { setChatSummaries(applyReadStatus(data)); setChatsLoaded(true); })
       .catch(e => setChatsError(getErrorMessage(e)))
       .finally(() => setChatsLoading(false));
   }, []);
@@ -1069,6 +1093,7 @@ const AgencyDashboardContent: FunctionComponent = () => {
               key={chat.application_id}
               style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: chat.is_unread ? "#f0f7ff" : "#fff", padding: "16px 20px", borderRadius: 12, border: `1px solid ${chat.is_unread ? "#c5d9ff" : "#e8e8e8"}`, cursor: "pointer" }}
               onClick={() => {
+                markChatRead(chat.application_id);
                 if (chat.is_unread) {
                   setChatSummaries(prev => prev.map(c =>
                     c.application_id === chat.application_id ? { ...c, is_unread: false } : c

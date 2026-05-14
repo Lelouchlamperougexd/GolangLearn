@@ -21,6 +21,7 @@ import {
   type ApplicationMessage,
 } from "../api/dashboard";
 import { getErrorMessage } from "../api/auth";
+import { markChatRead, applyReadStatus } from "../utils/chatRead";
 
 const logo = "/assets/logo.png";
 
@@ -80,6 +81,17 @@ function fmtTime(iso: string) {
     return new Intl.DateTimeFormat("ru-RU", { hour: "2-digit", minute: "2-digit" })
       .format(new Date(iso));
   } catch { return ""; }
+}
+
+function fmtDateLabel(iso: string): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const today = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(today.getDate() - 1);
+  if (d.toDateString() === today.toDateString()) return "Сегодня";
+  if (d.toDateString() === yesterday.toDateString()) return "Вчера";
+  return new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "long" }).format(d);
 }
 
 // ─── Application Detail Modal ─────────────────────────────────────────────────
@@ -198,15 +210,27 @@ function ChatWindow({
             Сообщений пока нет
           </div>
         )}
-        {messages.map(msg => {
+        {messages.reduce<React.ReactNode[]>((acc, msg, i) => {
+          const msgDay = msg.created_at.slice(0, 10);
+          const prevDay = i > 0 ? messages[i - 1].created_at.slice(0, 10) : null;
+          if (msgDay !== prevDay) {
+            acc.push(
+              <div key={`sep-${msgDay}`} style={{ textAlign: "center", fontSize: 12, color: "#b0b0b0", margin: "12px 0", userSelect: "none" }}>
+                <span style={{ background: "#f5f7fa", padding: "2px 12px", borderRadius: 10 }}>
+                  {fmtDateLabel(msg.created_at)}
+                </span>
+              </div>
+            );
+          }
           const isSent = msg.sender_user_id === userId;
-          return (
+          acc.push(
             <div key={msg.id} className={`${styles.messageBubble} ${isSent ? styles.messageSent : styles.messageReceived}`}>
               {msg.body}
               <div className={styles.messageTime}>{fmtTime(msg.created_at)}</div>
             </div>
           );
-        })}
+          return acc;
+        }, [])}
         <div ref={bottomRef} />
       </div>
 
@@ -289,7 +313,7 @@ const Dashboard: FunctionComponent = () => {
       .catch(e => setOverviewError(getErrorMessage(e)))
       .finally(() => setOverviewLoading(false));
     getChats()
-      .then(setChats)
+      .then(data => setChats(applyReadStatus(data)))
       .catch(() => {});
   }, []);
 
@@ -315,7 +339,7 @@ const Dashboard: FunctionComponent = () => {
       setChatsLoading(true);
       setChatsError(null);
       getChats()
-        .then(setChats)
+        .then(data => setChats(applyReadStatus(data)))
         .catch(e => setChatsError(getErrorMessage(e)))
         .finally(() => setChatsLoading(false));
     }
@@ -625,6 +649,7 @@ const Dashboard: FunctionComponent = () => {
                 key={chat.application_id}
                 className={styles.messageCard}
                 onClick={() => {
+                  markChatRead(chat.application_id);
                   if (chat.is_unread) {
                     setChats(prev => prev.map(c => c.application_id === chat.application_id ? { ...c, is_unread: false } : c));
                     setOverview(prev => prev ? { ...prev, unread_messages_count: Math.max(0, prev.unread_messages_count - 1) } : prev);
