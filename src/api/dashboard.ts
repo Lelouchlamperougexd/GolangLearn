@@ -239,6 +239,12 @@ export async function createListing(payload: CreateListingPayload): Promise<Comp
   return res.data.data;
 }
 
+/** PUT /listings/{id} — update an existing listing */
+export async function updateListing(id: number, payload: Partial<CreateListingPayload>): Promise<CompanyListing> {
+  const res = await api.put<Envelope<CompanyListing>>(`/listings/${id}`, payload);
+  return res.data.data;
+}
+
 /** POST /listings/{id}/media — upload a photo for a listing */
 export async function uploadListingMedia(
   listingId: number,

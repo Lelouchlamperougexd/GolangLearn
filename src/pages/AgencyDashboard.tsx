@@ -10,6 +10,8 @@ import {
   updateApplicationStatus,
   getCompanyListings,
   createListing,
+  updateListing,
+  getListing,
   uploadListingMedia,
   updateProfile,
   uploadAvatar,
@@ -259,6 +261,7 @@ function ListingsPage({
   onAdd: () => void;
   onRefresh: () => void;
   onSelect: (l: CompanyListing) => void;
+  onEdit: (l: CompanyListing) => void;
 }) {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("Все");
@@ -385,6 +388,9 @@ function ListingsPage({
                     <div className={s.rowActions}>
                       <button className={s.rowBtn} title="Просмотр" onClick={() => onSelect(item)}>
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#333" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                      </button>
+                      <button className={s.rowBtn} title="Редактировать" onClick={() => onEdit(item)}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#333" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                       </button>
                     </div>
                   </td>
@@ -672,6 +678,232 @@ function ApplicationDetailModal({
 
 // ─── ADD LISTING MODAL ────────────────────────────────────────────────────────
 
+// ─── EDIT LISTING MODAL ───────────────────────────────────────────────────────
+
+function EditListingModal({ listing, onClose, onSaved }: {
+  listing: CompanyListing;
+  onClose: () => void;
+  onSaved: (l: CompanyListing) => void;
+}) {
+  const [form, setForm] = useState({
+    title:        listing.title,
+    description:  "",
+    property_type: listing.property_type,
+    deal_type:    listing.deal_type as "rent" | "sale",
+    price:        String(listing.price),
+    city:         listing.city || "Алматы",
+    address:      listing.address || "",
+    rooms:        listing.rooms != null ? String(listing.rooms) : "",
+    area:         listing.area != null ? String(listing.area) : "",
+    floor:        listing.floor != null ? String(listing.floor) : "",
+    total_floors: listing.total_floors != null ? String(listing.total_floors) : "",
+  });
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [newPhotos, setNewPhotos] = useState<File[]>([]);
+  const [newPreviews, setNewPreviews] = useState<string[]>([]);
+  const [descLoading, setDescLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [uploadStep, setUploadStep] = useState("");
+  const [error, setError] = useState("");
+  const photoRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    getListing(listing.id)
+      .then(full => setForm(p => ({ ...p, description: full.description ?? "" })))
+      .catch(() => {})
+      .finally(() => setDescLoading(false));
+  }, [listing.id]);
+
+  const f = (field: string, val: string) => setForm(p => ({ ...p, [field]: val }));
+
+  const handlePhotos = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []).filter(f => f.type.startsWith("image/"));
+    const combined = [...newPhotos, ...files].slice(0, 10 - listing.media.length);
+    setNewPhotos(combined);
+    setNewPreviews(combined.map(f => URL.createObjectURL(f)));
+    e.target.value = "";
+  };
+
+  const removeNewPhoto = (idx: number) => {
+    const next = newPhotos.filter((_, i) => i !== idx);
+    setNewPhotos(next);
+    setNewPreviews(next.map(f => URL.createObjectURL(f)));
+  };
+
+  const handleSave = async () => {
+    if (!form.title.trim() || !form.price || !form.city.trim()) {
+      setError("Заполните обязательные поля: название, цена, город");
+      return;
+    }
+    setError("");
+    setSaving(true);
+    try {
+      const payload: Partial<import("../api/dashboard").CreateListingPayload> = {
+        title:         form.title.trim(),
+        description:   form.description.trim() || undefined,
+        property_type: form.property_type,
+        deal_type:     form.deal_type,
+        price:         parseInt(form.price, 10),
+        city:          form.city.trim(),
+        address:       form.address.trim() || undefined,
+        rooms:         form.rooms ? parseInt(form.rooms, 10) : undefined,
+        area:          form.area ? parseFloat(form.area) : undefined,
+        floor:         form.floor ? parseInt(form.floor, 10) : undefined,
+        total_floors:  form.total_floors ? parseInt(form.total_floors, 10) : undefined,
+        latitude:      coords?.lat,
+        longitude:     coords?.lng,
+      };
+      let updated = await updateListing(listing.id, payload);
+      if (newPhotos.length > 0) {
+        const startPos = listing.media.length + 1;
+        for (let i = 0; i < newPhotos.length; i++) {
+          setUploadStep(`Загрузка фото ${i + 1} из ${newPhotos.length}...`);
+          try {
+            const media = await uploadListingMedia(listing.id, newPhotos[i], startPos + i);
+            updated = { ...updated, media: [...(updated.media ?? []), media] };
+          } catch { /* continue */ }
+        }
+      }
+      onSaved(updated);
+      onClose();
+    } catch (e) {
+      setError(getErrorMessage(e));
+    } finally {
+      setSaving(false);
+      setUploadStep("");
+    }
+  };
+
+  return (
+    <div className={s.modal} onClick={onClose}>
+      <div className={s.modalBox} onClick={e => e.stopPropagation()} style={{ maxHeight: "90vh", overflowY: "auto" }}>
+        <div className={s.modalHeader}>
+          <div className={s.modalTitle}>Редактировать объявление</div>
+          <button className={s.modalCloseBtn} onClick={onClose}>✕</button>
+        </div>
+        <div className={s.modalBody}>
+          <div className={s.formGroup}>
+            <label className={s.formLabel}>Название *</label>
+            <input className={s.formInput} value={form.title} onChange={e => f("title", e.target.value)} />
+          </div>
+          <div className={s.formGroup}>
+            <label className={s.formLabel}>Описание</label>
+            {descLoading ? (
+              <div style={{ fontSize: 13, color: "#939393", padding: "8px 0" }}>Загрузка...</div>
+            ) : (
+              <textarea className={s.formTextarea} value={form.description} onChange={e => f("description", e.target.value)} />
+            )}
+          </div>
+          <div className={s.formRow}>
+            <div className={s.formGroup}>
+              <label className={s.formLabel}>Тип объекта</label>
+              <select className={s.formSelect} value={form.property_type} onChange={e => f("property_type", e.target.value)}>
+                <option value="apartment">Квартира</option>
+                <option value="house">Дом</option>
+                <option value="studio">Студия</option>
+                <option value="commercial">Коммерческое</option>
+                <option value="land">Земля</option>
+              </select>
+            </div>
+            <div className={s.formGroup}>
+              <label className={s.formLabel}>Тип сделки</label>
+              <select className={s.formSelect} value={form.deal_type} onChange={e => f("deal_type", e.target.value as "rent" | "sale")}>
+                <option value="rent">Аренда</option>
+                <option value="sale">Продажа</option>
+              </select>
+            </div>
+          </div>
+          <div className={s.formRow}>
+            <div className={s.formGroup}>
+              <label className={s.formLabel}>Цена (₸) *</label>
+              <input className={s.formInput} type="number" value={form.price} onChange={e => f("price", e.target.value)} />
+            </div>
+            <div className={s.formGroup}>
+              <label className={s.formLabel}>Город *</label>
+              <select className={s.formSelect} value={form.city} onChange={e => { f("city", e.target.value); setCoords(null); }}>
+                <option value="Алматы">Алматы</option>
+                <option value="Астана">Астана</option>
+              </select>
+            </div>
+          </div>
+          <div className={s.formGroup}>
+            <label className={s.formLabel}>Адрес</label>
+            <input className={s.formInput} value={form.address} onChange={e => f("address", e.target.value)} />
+          </div>
+          <div className={s.formGroup}>
+            <label className={s.formLabel}>Местоположение на карте</label>
+            <MapPicker value={coords} onChange={setCoords} city={form.city} onAddress={addr => f("address", addr)} />
+          </div>
+          <div className={s.formRow}>
+            <div className={s.formGroup}>
+              <label className={s.formLabel}>Комнат</label>
+              <input className={s.formInput} type="number" value={form.rooms} onChange={e => f("rooms", e.target.value)} />
+            </div>
+            <div className={s.formGroup}>
+              <label className={s.formLabel}>Площадь (м²)</label>
+              <input className={s.formInput} type="number" value={form.area} onChange={e => f("area", e.target.value)} />
+            </div>
+          </div>
+          <div className={s.formRow}>
+            <div className={s.formGroup}>
+              <label className={s.formLabel}>Этаж</label>
+              <input className={s.formInput} type="number" value={form.floor} onChange={e => f("floor", e.target.value)} />
+            </div>
+            <div className={s.formGroup}>
+              <label className={s.formLabel}>Этажей в доме</label>
+              <input className={s.formInput} type="number" value={form.total_floors} onChange={e => f("total_floors", e.target.value)} />
+            </div>
+          </div>
+
+          {/* Existing photos */}
+          {listing.media.length > 0 && (
+            <div className={s.formGroup}>
+              <label className={s.formLabel}>Текущие фото</label>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {listing.media.map(m => (
+                  <div key={m.id} style={{ width: 80, height: 80, borderRadius: 8, overflow: "hidden", border: "1px solid #e8e8e8" }}>
+                    <img src={m.url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* New photos */}
+          {listing.media.length < 10 && (
+            <div className={s.formGroup}>
+              <label className={s.formLabel}>Добавить фото</label>
+              <input ref={photoRef} type="file" accept="image/*" multiple onChange={handlePhotos} style={{ display: "none" }} />
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {newPreviews.map((src, i) => (
+                  <div key={i} style={{ position: "relative", width: 80, height: 80, borderRadius: 8, overflow: "hidden", border: "1px solid #e8e8e8" }}>
+                    <img src={src} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    <button onClick={() => removeNewPhoto(i)} style={{ position: "absolute", top: 2, right: 2, width: 18, height: 18, borderRadius: "50%", background: "rgba(0,0,0,0.55)", border: "none", color: "#fff", fontSize: 11, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
+                  </div>
+                ))}
+                {newPhotos.length < 10 - listing.media.length && (
+                  <button onClick={() => photoRef.current?.click()} style={{ width: 80, height: 80, borderRadius: 8, border: "2px dashed #d0d9ff", background: "#f5f7ff", color: "#70a0ff", fontSize: 24, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>+</button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {uploadStep && <div style={{ fontSize: 13, color: "#70a0ff", padding: "6px 0" }}>{uploadStep}</div>}
+          {error && <div style={{ color: "#e53e3e", fontSize: 13, padding: "8px 12px", background: "#fff5f5", borderRadius: 8, border: "1px solid #fed7d7" }}>{error}</div>}
+        </div>
+        <div className={s.modalFooter}>
+          <button className={s.btnCancel} onClick={onClose} disabled={saving}>Отмена</button>
+          <button className={s.btnSubmit} onClick={handleSave} disabled={saving}>
+            {saving ? (uploadStep || "Сохранение...") : "Сохранить →"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── ADD LISTING MODAL ────────────────────────────────────────────────────────
+
 function AddListingModal({ onClose, onSaved }: { onClose: () => void; onSaved: (l: CompanyListing) => void }) {
   const [form, setForm] = useState<{
     title: string; description: string; property_type: string;
@@ -881,6 +1113,7 @@ const AgencyDashboardContent: FunctionComponent = () => {
   const [showOnboarding, setShowOnboarding] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
   const [showAddModal, setShowAddModal] = useState(false);
+  const [editingListing, setEditingListing] = useState<CompanyListing | null>(null);
 
   // Real data
   const [applications, setApplications] = useState<Application[]>([]);
@@ -1270,6 +1503,7 @@ const AgencyDashboardContent: FunctionComponent = () => {
               onAdd={() => setShowAddModal(true)}
               onRefresh={loadListings}
               onSelect={setSelectedListing}
+              onEdit={setEditingListing}
             />
           )}
           {activeTab === "applications" && (
@@ -1470,6 +1704,18 @@ const AgencyDashboardContent: FunctionComponent = () => {
         />
       )}
 
+      {/* Edit Listing Modal */}
+      {editingListing && (
+        <EditListingModal
+          listing={editingListing}
+          onClose={() => setEditingListing(null)}
+          onSaved={updated => {
+            setListings(prev => prev.map(l => l.id === updated.id ? updated : l));
+            setEditingListing(null);
+          }}
+        />
+      )}
+
       {/* Listing Detail Modal */}
       {selectedListing && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 999, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
@@ -1514,6 +1760,16 @@ const AgencyDashboardContent: FunctionComponent = () => {
                 ⏳ Объявление находится на модерации. После одобрения оно станет видно всем пользователям.
               </div>
             )}
+            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 20 }}>
+              <button
+                className={s.btnAdd}
+                onClick={() => { setSelectedListing(null); setEditingListing(selectedListing); }}
+                style={{ fontSize: 13 }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                Редактировать
+              </button>
+            </div>
           </div>
         </div>
       )}
