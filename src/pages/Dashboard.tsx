@@ -308,7 +308,7 @@ const Dashboard: FunctionComponent = () => {
     setTimeout(() => setToast(null), 3000);
   }, []);
 
-  // Load overview and chats on mount
+  // Load overview, chats and applications on mount
   useEffect(() => {
     getDashboardOverview()
       .then(setOverview)
@@ -316,6 +316,9 @@ const Dashboard: FunctionComponent = () => {
       .finally(() => setOverviewLoading(false));
     getChats()
       .then(data => setChats(applyReadStatus(data)))
+      .catch(() => {});
+    getMyApplications()
+      .then(setApplications)
       .catch(() => {});
   }, []);
 
@@ -627,6 +630,9 @@ const Dashboard: FunctionComponent = () => {
               <div className={styles.appMeta}>
                 <StatusBadge status={app.status} />
                 <div className={styles.dateText}>{fmtDate(app.updated_at)}</div>
+                {app.status === "approved"
+                  ? <span style={{ fontSize: 11, color: "#52c97a" }}>💬 Чат открыт</span>
+                  : <span style={{ fontSize: 11, color: "#b0b0b0" }}>🔒 Чат недоступен</span>}
                 <div className={styles.arrowRight}>{">"}</div>
               </div>
             </div>
@@ -640,6 +646,11 @@ const Dashboard: FunctionComponent = () => {
     if (activeChat) {
       return <ChatWindow chat={activeChat} userId={user?.id ?? 0} onBack={() => setActiveChat(null)} />;
     }
+
+    const approvedChats = chats.filter(c =>
+      applications.find(a => a.id === c.application_id)?.status === "approved"
+    );
+
     return (
       <div className={styles.cardListContainer} style={{ height: "fit-content" }}>
         <div className={styles.sectionTitle}>Сообщения</div>
@@ -651,11 +662,11 @@ const Dashboard: FunctionComponent = () => {
           <div style={{ color: "#e53e3e", fontSize: 13, padding: "12px 16px", background: "#fff5f5", borderRadius: 10, border: "1px solid #fed7d7" }}>
             {chatsError}
           </div>
-        ) : chats.length === 0 ? (
-          <EmptyState icon="💬" text="Сообщений нет" sub="Чаты появятся когда вы подадите заявку на объявление" />
+        ) : approvedChats.length === 0 ? (
+          <EmptyState icon="🔒" text="Сообщения недоступны" sub="Чат открывается только после одобрения заявки агентством" />
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {chats.map(chat => (
+            {approvedChats.map(chat => (
               <div
                 key={chat.application_id}
                 className={styles.messageCard}
