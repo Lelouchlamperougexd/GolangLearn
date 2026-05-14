@@ -883,6 +883,9 @@ const AgencyDashboardContent: FunctionComponent = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordSaving, setPasswordSaving] = useState(false);
   const [passwordError, setPasswordError] = useState("");
+  const [showOld, setShowOld] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const handleSaveProfile = async () => {
     setSettingsSaving(true);
@@ -1316,18 +1319,24 @@ const AgencyDashboardContent: FunctionComponent = () => {
                   <button className={s.btnSecondary} onClick={() => setIsEditingPassword(true)}>Изменить пароль</button>
                 ) : (
                   <div style={{ display: "flex", flexDirection: "column", gap: 16, maxWidth: 320 }}>
-                    <div className={s.formGroup}>
-                      <label className={s.formLabel}>Текущий пароль</label>
-                      <input type="password" value={oldPassword} onChange={e => setOldPassword(e.target.value)} className={s.formInput} placeholder="Введите текущий пароль" />
-                    </div>
-                    <div className={s.formGroup}>
-                      <label className={s.formLabel}>Новый пароль</label>
-                      <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} className={s.formInput} placeholder="Не менее 8 символов" />
-                    </div>
-                    <div className={s.formGroup}>
-                      <label className={s.formLabel}>Подтвердите пароль</label>
-                      <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className={s.formInput} />
-                    </div>
+                    {[
+                      { label: "Текущий пароль", value: oldPassword, set: setOldPassword, show: showOld, toggle: () => setShowOld(p => !p), placeholder: "Введите текущий пароль" },
+                      { label: "Новый пароль", value: newPassword, set: setNewPassword, show: showNew, toggle: () => setShowNew(p => !p), placeholder: "Не менее 8 символов" },
+                      { label: "Подтвердите пароль", value: confirmPassword, set: setConfirmPassword, show: showConfirm, toggle: () => setShowConfirm(p => !p), placeholder: "Повторите новый пароль" },
+                    ].map(({ label, value, set, show, toggle, placeholder }) => (
+                      <div className={s.formGroup} key={label}>
+                        <label className={s.formLabel}>{label}</label>
+                        <div style={{ position: "relative" }}>
+                          <input type={show ? "text" : "password"} value={value} onChange={e => set(e.target.value)} className={s.formInput} placeholder={placeholder} style={{ paddingRight: 36 }} />
+                          <button type="button" onClick={toggle} style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#939393", display: "flex", padding: 0 }}>
+                            {show
+                              ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                              : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                            }
+                          </button>
+                        </div>
+                      </div>
+                    ))}
                     {passwordError && (
                       <div style={{ color: "#e53e3e", fontSize: 13, padding: "8px 12px", background: "#fff5f5", borderRadius: 8, border: "1px solid #fed7d7" }}>
                         {passwordError}
