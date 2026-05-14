@@ -766,7 +766,7 @@ function AddListingModal({ onClose, onSaved }: { onClose: () => void; onSaved: (
           </div>
           <div className={s.formGroup}>
             <label className={s.formLabel}>Местоположение на карте</label>
-            <MapPicker value={coords} onChange={setCoords} city={form.city} />
+            <MapPicker value={coords} onChange={setCoords} city={form.city} onAddress={addr => f("address", addr)} />
           </div>
           <div className={s.formRow}>
             <div className={s.formGroup}>

@@ -17,8 +17,35 @@ const CITY_CENTERS: Record<string, [number, number]> = {
   "Астана": [51.180117, 71.446020],
 };
 
-function ClickHandler({ onChange }: { onChange: (pos: LatLng) => void }) {
-  useMapEvents({ click(e) { onChange({ lat: e.latlng.lat, lng: e.latlng.lng }); } });
+async function reverseGeocode(lat: number, lng: number): Promise<string> {
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=ru`,
+      { headers: { "Accept-Language": "ru" } }
+    );
+    const data = await res.json();
+    const a = data.address ?? {};
+    const parts = [
+      a.road || a.pedestrian || a.footway,
+      a.house_number,
+    ].filter(Boolean);
+    return parts.length > 0 ? parts.join(", ") : (data.display_name ?? "");
+  } catch {
+    return "";
+  }
+}
+
+function ClickHandler({ onChange, onAddress }: { onChange: (pos: LatLng) => void; onAddress?: (addr: string) => void }) {
+  useMapEvents({
+    async click(e) {
+      const pos = { lat: e.latlng.lat, lng: e.latlng.lng };
+      onChange(pos);
+      if (onAddress) {
+        const addr = await reverseGeocode(pos.lat, pos.lng);
+        if (addr) onAddress(addr);
+      }
+    },
+  });
   return null;
 }
 
@@ -34,10 +61,11 @@ function RecenterOnCity({ city }: { city: string }) {
 interface Props {
   value: LatLng | null;
   onChange: (pos: LatLng) => void;
+  onAddress?: (address: string) => void;
   city?: string;
 }
 
-export default function MapPicker({ value, onChange, city = "Алматы" }: Props) {
+export default function MapPicker({ value, onChange, onAddress, city = "Алматы" }: Props) {
   const defaultCenter = CITY_CENTERS[city] ?? CITY_CENTERS["Алматы"];
 
   return (
@@ -51,7 +79,7 @@ export default function MapPicker({ value, onChange, city = "Алматы" }: Pr
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
           url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
         />
-        <ClickHandler onChange={onChange} />
+        <ClickHandler onChange={onChange} onAddress={onAddress} />
         <RecenterOnCity city={city} />
         {value && <Marker position={[value.lat, value.lng]} />}
       </MapContainer>
