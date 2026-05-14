@@ -11,6 +11,7 @@ import {
   getMessages,
   sendMessage,
   updateProfile,
+  uploadAvatar,
   changePassword,
   statusLabel,
   statusColor,
@@ -298,7 +299,8 @@ const Dashboard: FunctionComponent = () => {
   const [showNew, setShowNew] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [profileImage, setProfileImage] = useState<string | null>(() => user?.avatar_url ?? null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
 
   // Toast helper
   const showToast = useCallback((msg: string) => {
@@ -405,12 +407,21 @@ const Dashboard: FunctionComponent = () => {
     }
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = ev => { if (ev.target?.result) setProfileImage(ev.target.result as string); };
-    reader.readAsDataURL(file);
+    setAvatarUploading(true);
+    try {
+      const url = await uploadAvatar(file);
+      setProfileImage(url);
+      if (token && user) login(token, { ...user, avatar_url: url });
+    } catch {
+      const reader = new FileReader();
+      reader.onload = ev => { if (ev.target?.result) setProfileImage(ev.target.result as string); };
+      reader.readAsDataURL(file);
+    } finally {
+      setAvatarUploading(false);
+    }
   };
 
   // ── Renderers ─────────────────────────────────────────────────────────────
@@ -692,7 +703,7 @@ const Dashboard: FunctionComponent = () => {
         <div className={styles.sectionTitle} style={{ marginBottom: 24 }}>Персональные данные</div>
 
         <div className={styles.profileSection}>
-          <div className={styles.avatarWrapper} onClick={() => fileInputRef.current?.click()}>
+          <div className={styles.avatarWrapper} onClick={() => !avatarUploading && fileInputRef.current?.click()} style={{ cursor: avatarUploading ? "default" : "pointer" }}>
             {profileImage
               ? <img src={profileImage} alt="Profile" className={styles.avatarImage} />
               : <span style={{ fontSize: 22, fontWeight: 700, color: "#70a0ff" }}>
@@ -700,10 +711,13 @@ const Dashboard: FunctionComponent = () => {
                 </span>
             }
             <div className={styles.avatarOverlay}>
-              <img src="/assets/avatar.svg" alt="Upload" style={{ width: 24, filter: "brightness(0) invert(1)" }} />
+              {avatarUploading
+                ? <span style={{ color: "#fff", fontSize: 11 }}>...</span>
+                : <img src="/assets/avatar.svg" alt="Upload" style={{ width: 24, filter: "brightness(0) invert(1)" }} />
+              }
             </div>
           </div>
-          <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className={styles.uploadInput} />
+          <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/jpeg,image/png,image/webp" className={styles.uploadInput} />
           <div>
             <div style={{ fontSize: 16, fontWeight: 600, color: "#1a1a2e" }}>
               {user?.first_name} {user?.last_name}
@@ -853,8 +867,10 @@ const Dashboard: FunctionComponent = () => {
         {/* User info */}
         <div style={{ margin: "auto 0 0", padding: "12px 24px", borderTop: "1px solid #f0f0f0" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-            <div style={{ width: 34, height: 34, borderRadius: "50%", background: "#f0f4ff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: "#70a0ff", flexShrink: 0 }}>
-              {(user?.first_name?.charAt(0) ?? "") + (user?.last_name?.charAt(0) ?? "")}
+            <div style={{ width: 34, height: 34, borderRadius: "50%", background: "#f0f4ff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: "#70a0ff", flexShrink: 0, overflow: "hidden" }}>
+              {profileImage
+                ? <img src={profileImage} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                : (user?.first_name?.charAt(0) ?? "") + (user?.last_name?.charAt(0) ?? "")}
             </div>
             <div style={{ overflow: "hidden" }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: "#1a1a2e", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>

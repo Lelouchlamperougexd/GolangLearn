@@ -22,6 +22,7 @@ export interface User {
   is_active: boolean;
   push_opt_in: boolean;
   created_at: string;
+  avatar_url?: string;
 }
 
 interface AuthContextValue {

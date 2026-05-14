@@ -166,6 +166,16 @@ export async function updateProfile(payload: UpdateProfilePayload) {
   return res.data.data;
 }
 
+/** PUT /users/me/avatar — upload avatar (jpeg/png/webp, max 5MB) */
+export async function uploadAvatar(file: File): Promise<string> {
+  const form = new FormData();
+  form.append('avatar', file);
+  const res = await api.put<Envelope<{ avatar_url: string }>>('/users/me/avatar', form, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return res.data.data.avatar_url;
+}
+
 /** PUT /users/me/password — change password */
 export async function changePassword(payload: ChangePasswordPayload) {
   const res = await api.put<Envelope<{ message: string }>>('/users/me/password', payload);

@@ -12,6 +12,7 @@ import {
   createListing,
   uploadListingMedia,
   updateProfile,
+  uploadAvatar,
   changePassword,
   statusLabel,
   statusColor,
@@ -856,7 +857,8 @@ const AgencyDashboardContent: FunctionComponent = () => {
   const [selectedListing, setSelectedListing] = useState<CompanyListing | null>(null);
 
   // Settings state
-  const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [profileImage, setProfileImage] = useState<string | null>(() => user?.avatar_url ?? null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [settingsFirstName, setSettingsFirstName] = useState(user?.first_name ?? "");
   const [settingsLastName, setSettingsLastName] = useState(user?.last_name ?? "");
@@ -905,12 +907,20 @@ const AgencyDashboardContent: FunctionComponent = () => {
     }
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
+    if (!file) return;
+    setAvatarUploading(true);
+    try {
+      const url = await uploadAvatar(file);
+      setProfileImage(url);
+      if (token && user) login(token, { ...user, avatar_url: url });
+    } catch {
       const reader = new FileReader();
       reader.onload = ev => setProfileImage(ev.target?.result as string);
       reader.readAsDataURL(file);
+    } finally {
+      setAvatarUploading(false);
     }
   };
 
@@ -1235,14 +1245,22 @@ const AgencyDashboardContent: FunctionComponent = () => {
               <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e8e8e8", padding: 32 }}>
                 <h3 style={{ margin: "0 0 24px", fontSize: 18, fontWeight: 600, color: "#1a1a2e" }}>Профиль агентства</h3>
                 <div className={s.profileSection}>
-                  <div className={s.avatarWrapper} onClick={() => fileInputRef.current?.click()}>
+                  <div
+                    className={s.avatarWrapper}
+                    onClick={() => !avatarUploading && fileInputRef.current?.click()}
+                    style={{ cursor: avatarUploading ? "default" : "pointer", opacity: avatarUploading ? 0.7 : 1 }}
+                  >
                     {profileImage ? <img src={profileImage} alt="Profile" className={s.avatarImage} /> : "АН"}
-                    <div className={s.avatarOverlay}><span style={{ fontSize: 24, color: "#fff" }}>📷</span></div>
+                    <div className={s.avatarOverlay}>
+                      <span style={{ fontSize: 24, color: "#fff" }}>{avatarUploading ? "..." : "📷"}</span>
+                    </div>
                   </div>
-                  <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className={s.uploadInput} />
+                  <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className={s.uploadInput} disabled={avatarUploading} />
                   <div>
                     <div style={{ fontSize: 15, fontWeight: 500, color: "#3a3a3a" }}>Логотип агентства</div>
-                    <div style={{ fontSize: 13, color: "#737373", marginTop: 4 }}>Нажмите на аватар, чтобы загрузить новое фото</div>
+                    <div style={{ fontSize: 13, color: "#737373", marginTop: 4 }}>
+                      {avatarUploading ? "Загрузка..." : "Нажмите на аватар, чтобы загрузить новое фото"}
+                    </div>
                   </div>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>

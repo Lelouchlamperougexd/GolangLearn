@@ -15,6 +15,7 @@ import {
   getCompanyListings,
   createListing,
   uploadListingMedia,
+  uploadAvatar,
   statusLabel,
   statusColor,
   type Application,
@@ -950,7 +951,8 @@ const DeveloperDashboardContent: FunctionComponent = () => {
 
   // Settings
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [profileImage, setProfileImage] = useState<string | null>(() => user?.avatar_url ?? null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
   const [settingsFirstName, setSettingsFirstName] = useState(user?.first_name ?? "");
   const [settingsLastName,  setSettingsLastName]  = useState(user?.last_name ?? "");
   const [settingsPhone,     setSettingsPhone]     = useState(user?.phone ?? "");
@@ -1067,12 +1069,20 @@ const DeveloperDashboardContent: FunctionComponent = () => {
     }
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
+    if (!file) return;
+    setAvatarUploading(true);
+    try {
+      const url = await uploadAvatar(file);
+      setProfileImage(url);
+      if (token && user) login(token, { ...user, avatar_url: url });
+    } catch {
       const reader = new FileReader();
       reader.onload = ev => setProfileImage(ev.target?.result as string);
       reader.readAsDataURL(file);
+    } finally {
+      setAvatarUploading(false);
     }
   };
 
@@ -1278,14 +1288,22 @@ const DeveloperDashboardContent: FunctionComponent = () => {
       <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e8e8e8", padding: 32 }}>
         <h3 style={{ margin: "0 0 24px", fontSize: 18, fontWeight: 600, color: "#1a1a2e" }}>Профиль застройщика</h3>
         <div className={s.profileSection}>
-          <div className={s.avatarWrapper} onClick={() => fileInputRef.current?.click()}>
+          <div
+            className={s.avatarWrapper}
+            onClick={() => !avatarUploading && fileInputRef.current?.click()}
+            style={{ cursor: avatarUploading ? "default" : "pointer", opacity: avatarUploading ? 0.7 : 1 }}
+          >
             {profileImage ? <img src={profileImage} alt="Profile" className={s.avatarImage} /> : "ЗС"}
-            <div className={s.avatarOverlay}><span style={{ fontSize: 24, color: "#fff" }}>📷</span></div>
+            <div className={s.avatarOverlay}>
+              <span style={{ fontSize: 24, color: "#fff" }}>{avatarUploading ? "..." : "📷"}</span>
+            </div>
           </div>
-          <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className={s.uploadInput} />
+          <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className={s.uploadInput} disabled={avatarUploading} />
           <div>
             <div style={{ fontSize: 15, fontWeight: 500, color: "#3a3a3a" }}>Логотип компании</div>
-            <div style={{ fontSize: 13, color: "#737373", marginTop: 4 }}>Нажмите на аватар, чтобы загрузить логотип</div>
+            <div style={{ fontSize: 13, color: "#737373", marginTop: 4 }}>
+              {avatarUploading ? "Загрузка..." : "Нажмите на аватар, чтобы загрузить логотип"}
+            </div>
           </div>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -1387,8 +1405,10 @@ const DeveloperDashboardContent: FunctionComponent = () => {
         <div style={{ marginTop: "auto", padding: "16px 12px", borderTop: "1px solid #f0f0f0" }}>
           {/* User info */}
           <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", marginBottom: 4 }}>
-            <div style={{ width: 34, height: 34, borderRadius: 8, background: "linear-gradient(135deg, #5b73e8, #4a60d4)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 13, fontWeight: 600, flexShrink: 0 }}>
-              {(user?.first_name ?? "З").charAt(0)}
+            <div style={{ width: 34, height: 34, borderRadius: 8, background: "linear-gradient(135deg, #5b73e8, #4a60d4)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 13, fontWeight: 600, flexShrink: 0, overflow: "hidden" }}>
+              {profileImage
+                ? <img src={profileImage} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                : (user?.first_name ?? "З").charAt(0)}
             </div>
             <div>
               <div style={{ fontSize: 13, fontWeight: 500, color: "#1a1a2e" }}>{user?.first_name} {user?.last_name}</div>
