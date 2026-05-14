@@ -146,6 +146,11 @@ export const adminAPI = {
   verifyCompany: (id: number, status: 'verified' | 'rejected') =>
     api.put<Envelope<Company>>(`/admin/companies/${id}/verify`, { status }).then(r => r.data.data ?? r.data),
 
+  getCompanyDocument: async (id: number): Promise<string> => {
+    const res = await api.get(`/admin/companies/${id}/document`, { responseType: 'blob' });
+    return URL.createObjectURL(res.data as Blob);
+  },
+
   // Listings
   getListings: (params?: { status?: string; deal_type?: string; city?: string; property_type?: string; limit?: number; offset?: number }) =>
     api.get<Envelope<Listing[]>>('/admin/listings', { params }).then(r => r.data.data ?? r.data),

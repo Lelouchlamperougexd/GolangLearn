@@ -207,6 +207,7 @@ function CompaniesPage() {
   const [inviteType, setInviteType] = useState<"agency" | "developer">("agency");
   const [invite, setInvite] = useState<Invite | null>(null);
   const [inviteLoading, setInviteLoading] = useState(false);
+  const [docLoading, setDocLoading] = useState(false);
 
   useEffect(() => {
     adminAPI.getCompanies()
@@ -221,6 +222,19 @@ function CompaniesPage() {
       setItems(prev => prev.map(c => c.id === id ? company : c));
       setSelected(prev => prev?.id === id ? company : prev);
     } catch {}
+  };
+
+  const openDocument = async (id: number) => {
+    setDocLoading(true);
+    try {
+      const blobUrl = await adminAPI.getCompanyDocument(id);
+      const tab = window.open(blobUrl, "_blank");
+      if (tab) setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
+    } catch {
+      alert("Документ не найден или недоступен");
+    } finally {
+      setDocLoading(false);
+    }
   };
 
   const createInvite = async () => {
@@ -315,8 +329,18 @@ function CompaniesPage() {
             <Detail label="Город">{selected.city}</Detail>
             <Detail label="Рег. номер">{selected.registration_number}</Detail>
             <Detail label="Дата подачи">{formatDate(selected.created_at)}</Detail>
+            <div style={{ marginTop: 14 }}>
+              <button
+                className={s.btnNeutral}
+                style={{ fontSize: 13, padding: "8px 20px" }}
+                disabled={docLoading}
+                onClick={() => openDocument(selected.id)}
+              >
+                {docLoading ? "Загрузка..." : "📄 Посмотреть документ"}
+              </button>
+            </div>
             {selected.verification_status === "pending" && (
-              <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
+              <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
                 <button
                   className={s.btnApprove}
                   style={{ fontSize: 13, padding: "8px 20px" }}
