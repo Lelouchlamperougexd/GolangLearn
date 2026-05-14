@@ -428,7 +428,6 @@ function AgencyApplicationsPage({
 }) {
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
   const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(null);
-  const newCount    = applications.filter(a => a.status === "new").length;
   const reviewCount = applications.filter(a => a.status === "review").length;
 
   return (
@@ -438,11 +437,6 @@ function AgencyApplicationsPage({
           <div className={s.statCardTop}><div className={`${s.statCardIconWrap} ${s.statCardIconTeal}`}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div></div>
           <div className={s.statCardValue}>{applications.length}</div>
           <div className={s.statCardLabel}>Всего заявок</div>
-        </div>
-        <div className={s.statCard}>
-          <div className={s.statCardTop}><div className={`${s.statCardIconWrap} ${s.statCardIconOrange}`}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg></div></div>
-          <div className={s.statCardValue}>{newCount}</div>
-          <div className={s.statCardLabel}>Новые</div>
         </div>
         <div className={s.statCard}>
           <div className={s.statCardTop}><div className={`${s.statCardIconWrap} ${s.statCardIconBlue}`}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg></div></div>
