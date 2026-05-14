@@ -254,7 +254,7 @@ function AgencyChatWindow({
 // ─── LISTINGS PAGE ────────────────────────────────────────────────────────────
 
 function ListingsPage({
-  listings, loading, error, onAdd, onRefresh, onSelect,
+  listings, loading, error, onAdd, onRefresh, onSelect, onEdit, onDelete,
 }: {
   listings: CompanyListing[];
   loading: boolean;
