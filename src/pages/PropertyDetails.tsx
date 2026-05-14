@@ -9,6 +9,7 @@ import {
 } from "../api/dashboard";
 import { useAuth } from "../context/AuthContext";
 import { getErrorMessage } from "../api/auth";
+import NearbyPlaces from "../components/NearbyPlaces";
 
 const PROPERTY_TYPE_LABELS: Record<string, string> = {
   apartment: "Квартира", house: "Дом", studio: "Студия",
@@ -355,6 +356,14 @@ const PropertyDetails: FunctionComponent = () => {
               <MapComponent properties={[mapProp]} />
             </div>
           </div>
+
+          {/* Nearby infrastructure */}
+          {listing.latitude && listing.longitude && (
+            <div className={styles.section}>
+              <div className={styles.sectionTitle}>Инфраструктура рядом</div>
+              <NearbyPlaces lat={listing.latitude} lng={listing.longitude} />
+            </div>
+          )}
         </div>
 
         {/* Right Column */}
