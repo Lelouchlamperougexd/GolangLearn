@@ -1,7 +1,7 @@
 import { useState, type FunctionComponent } from "react";
 import { useNavigate } from "react-router-dom";
 import styles from "../css/Login.module.css";
-import { loginUser, getErrorMessage, requestPasswordReset, confirmPasswordReset } from "../api/auth";
+import { loginUser, getErrorMessage, requestPasswordReset } from "../api/auth";
 import { useAuth } from "../context/AuthContext";
 
 type Props = {
@@ -9,7 +9,7 @@ type Props = {
   onLoginSuccess?: (roleName: string) => void;
 };
 
-type Step = "login" | "forgot-email" | "forgot-confirm" | "forgot-done";
+type Step = "login" | "forgot-email" | "forgot-sent";
 
 const Container: FunctionComponent<Props> = ({ onClose, onLoginSuccess }) => {
   const navigate = useNavigate();
@@ -24,10 +24,6 @@ const Container: FunctionComponent<Props> = ({ onClose, onLoginSuccess }) => {
 
   // Forgot password state
   const [resetEmail, setResetEmail] = useState("");
-  const [resetToken, setResetToken] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [showNewPassword, setShowNewPassword] = useState(false);
 
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -64,7 +60,7 @@ const Container: FunctionComponent<Props> = ({ onClose, onLoginSuccess }) => {
     setLoading(true);
     try {
       await requestPasswordReset(resetEmail);
-      setStep("forgot-confirm");
+      setStep("forgot-sent");
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
@@ -72,31 +68,11 @@ const Container: FunctionComponent<Props> = ({ onClose, onLoginSuccess }) => {
     }
   };
 
-  const handleConfirmReset = async () => {
-    if (!resetToken.trim() || newPassword.length < 8 || newPassword !== confirmPassword) return;
-    setError("");
-    setLoading(true);
-    try {
-      await confirmPasswordReset({
-        token: resetToken.trim(),
-        password: newPassword,
-        password_confirmation: confirmPassword,
-      });
-      setStep("forgot-done");
-    } catch (err) {
-      setError(getErrorMessage(err));
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const goBack = () => {
     setStep("login");
     setError("");
     setResetEmail("");
-    setResetToken("");
-    setNewPassword("");
-    setConfirmPassword("");
   };
 
   const inputStyle: React.CSSProperties = {
@@ -180,125 +156,33 @@ const Container: FunctionComponent<Props> = ({ onClose, onLoginSuccess }) => {
     );
   }
 
-  if (step === "forgot-confirm") {
-    const isValid = resetToken.trim().length > 0 && newPassword.length >= 8 && newPassword === confirmPassword;
+  if (step === "forgot-sent") {
     return (
       <div className={styles.container}>
         <div className={styles.container2}>
           <div className={styles.heading2}>
-            <div className={styles.div}>Введите код</div>
-          </div>
-          <button className={styles.closeButton} onClick={onClose}>✕</button>
-        </div>
-        <div className={styles.container3}>
-          <div className={styles.paragraph}>
-            <div className={styles.div2}>
-              Код отправлен на <strong>{resetEmail}</strong>. Введите его и задайте новый пароль.
-            </div>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 8 }}>
-            <div>
-              <label style={labelStyle}>Код из письма<span style={{ color: "#e53e3e" }}>*</span></label>
-              <input
-                style={inputStyle}
-                type="text"
-                placeholder="Вставьте код из email"
-                value={resetToken}
-                onChange={e => setResetToken(e.target.value)}
-                disabled={loading}
-                autoComplete="one-time-code"
-              />
-            </div>
-
-            <div>
-              <label style={labelStyle}>Новый пароль<span style={{ color: "#e53e3e" }}>*</span></label>
-              <div style={{ position: "relative" }}>
-                <input
-                  style={{ ...inputStyle, paddingRight: 44 }}
-                  type={showNewPassword ? "text" : "password"}
-                  placeholder="Не менее 8 символов"
-                  value={newPassword}
-                  onChange={e => setNewPassword(e.target.value)}
-                  disabled={loading}
-                  autoComplete="new-password"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowNewPassword(v => !v)}
-                  style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#939393", padding: 0 }}
-                >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    {showNewPassword
-                      ? <><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></>
-                      : <><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></>
-                    }
-                  </svg>
-                </button>
-              </div>
-            </div>
-
-            <div>
-              <label style={labelStyle}>Повторите пароль<span style={{ color: "#e53e3e" }}>*</span></label>
-              <input
-                style={inputStyle}
-                type="password"
-                placeholder="••••••••"
-                value={confirmPassword}
-                onChange={e => setConfirmPassword(e.target.value)}
-                onKeyDown={e => e.key === "Enter" && handleConfirmReset()}
-                disabled={loading}
-                autoComplete="new-password"
-              />
-              {confirmPassword.length > 0 && newPassword !== confirmPassword && (
-                <div style={{ fontSize: 12, color: "#e53e3e", marginTop: 4 }}>Пароли не совпадают</div>
-              )}
-            </div>
-
-            {error && (
-              <div style={{ color: "#e53e3e", fontSize: 13, padding: "10px 14px", background: "#fff5f5", borderRadius: 8, border: "1px solid #fed7d7" }}>
-                {error}
-              </div>
-            )}
-
-            <button
-              className={styles.button}
-              onClick={handleConfirmReset}
-              disabled={!isValid || loading}
-              style={{ opacity: (!isValid || loading) ? 0.7 : 1 }}
-            >
-              {loading ? "Сохраняем..." : "Сохранить пароль"}
-            </button>
-
-            <button
-              onClick={() => { setStep("forgot-email"); setError(""); }}
-              style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "#70a0ff", padding: 0, textAlign: "center" }}
-            >
-              ← Отправить код повторно
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (step === "forgot-done") {
-    return (
-      <div className={styles.container}>
-        <div className={styles.container2}>
-          <div className={styles.heading2}>
-            <div className={styles.div}>Готово!</div>
+            <div className={styles.div}>Проверьте почту</div>
           </div>
           <button className={styles.closeButton} onClick={onClose}>✕</button>
         </div>
         <div className={styles.container3} style={{ textAlign: "center", paddingTop: 24 }}>
-          <div style={{ width: 56, height: 56, borderRadius: "50%", background: "#f6ffed", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#52c97a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="20 6 9 17 4 12"/>
+          <div style={{ width: 56, height: 56, borderRadius: "50%", background: "#eef3ff", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#70a0ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+              <polyline points="22,6 12,13 2,6"/>
             </svg>
           </div>
-          <div style={{ fontSize: 15, fontWeight: 600, color: "#1a1a2e", marginBottom: 8 }}>Пароль успешно изменён</div>
-          <div style={{ fontSize: 13, color: "#939393", marginBottom: 24 }}>Теперь вы можете войти с новым паролем</div>
-          <button className={styles.button} onClick={goBack}>Войти</button>
+          <div style={{ fontSize: 15, fontWeight: 600, color: "#1a1a2e", marginBottom: 8 }}>Письмо отправлено</div>
+          <div style={{ fontSize: 13, color: "#595959", lineHeight: 1.6, marginBottom: 24 }}>
+            Мы отправили ссылку для сброса пароля на <strong>{resetEmail}</strong>.<br />
+            Перейдите по ней, чтобы задать новый пароль.
+          </div>
+          <button
+            onClick={goBack}
+            style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "#70a0ff", padding: 0 }}
+          >
+            ← Вернуться к входу
+          </button>
         </div>
       </div>
     );
