@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect, type FunctionComponent } from "react";
 import { useNavigate } from "react-router-dom";
-import styles from "../css/App.module.css";
+import styles from "../css/HomeResponsive.module.css";
 import Container from "./Login";
 import SignUp from "./SignUp";
 import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
 import videoLogo from "../assets/video-logo.mp4";
 
 function getDashboardRoute(roleName: string): string {
@@ -24,6 +25,7 @@ function getRoleLabel(roleName: string): string {
 const Home: FunctionComponent = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [showLogin, setShowLogin] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
@@ -31,7 +33,6 @@ const Home: FunctionComponent = () => {
   const [loggingIn, setLoggingIn] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (profileMenuRef.current && !profileMenuRef.current.contains(e.target as Node)) {
@@ -63,12 +64,11 @@ const Home: FunctionComponent = () => {
   };
 
   return (
-    <div className={styles.realEstateLandingPageIniti}>
-      {/* ── Logout overlay ── */}
+    <div className={styles.landingPage}>
       {(loggingOut || loggingIn) && (
         <div style={{
           position: "fixed", inset: 0, zIndex: 99999,
-          background: "#fbfbfb",
+          background: "var(--color-bg)",
           display: "flex", alignItems: "center", justifyContent: "center",
           animation: "fadeIn 0.2s ease",
         }}>
@@ -82,818 +82,294 @@ const Home: FunctionComponent = () => {
           />
         </div>
       )}
-      <div className={styles.body}>
-        <div className={styles.pk}>
-          <div className={styles.mainContent}>
-            <div className={styles.section}>
-              <div className={styles.container}>
-                <div className={styles.heading2}>
-                  <div className={styles.div}>Как работает платформа</div>
-                </div>
-                <div className={styles.paragraph}>
-                  <div className={styles.div2}>
-                    Четыре этапа работы с объектами недвижимости
-                  </div>
-                </div>
-              </div>
-              <div className={styles.container2}>
-                <div className={styles.container3}>
-                  <img className={styles.containerIcon} alt="" />
-                  <div className={styles.container4}>
-                    <div className={styles.div3}>01</div>
-                  </div>
-                  <div className={styles.heading3}>
-                    <div className={styles.div4}>Поиск объектов на карте</div>
-                  </div>
-                  <div className={styles.paragraph2}>
-                    <div className={styles.div5}>
-                      Фильтрация по городу, району и параметрам.
-                    </div>
-                  </div>
-                </div>
-                <div className={styles.container5}>
-                  <img className={styles.containerIcon} alt="" />
-                  <div className={styles.container4}>
-                    <div className={styles.div3}>02</div>
-                  </div>
-                  <div className={styles.heading32}>
-                    <div className={styles.div7}>
-                      Просмотр проверенных объявлений
-                    </div>
-                  </div>
-                  <div className={styles.paragraph3}>
-                    <div className={styles.div8}>
-                      Модерация и верификация всех объявлений.
-                    </div>
-                  </div>
-                </div>
-                <div className={styles.container7}>
-                  <img className={styles.containerIcon} alt="" />
-                  <div className={styles.container4}>
-                    <div className={styles.div3}>03</div>
-                  </div>
-                  <div className={styles.heading3}>
-                    <div className={styles.div10}>Связь с агентством</div>
-                  </div>
-                  <div className={styles.paragraph2}>
-                    <div className={styles.div11}>
-                      Встроенный чат для прямого общения.
-                    </div>
-                  </div>
-                </div>
-                <div className={styles.container9}>
-                  <img className={styles.containerIcon} alt="" />
-                  <div className={styles.container4}>
-                    <div className={styles.div3}>04</div>
-                  </div>
-                  <div className={styles.heading3}>
-                    <div className={styles.div13}>Бронирование объекта</div>
-                  </div>
-                  <div className={styles.paragraph2}>
-                    <div className={styles.div14}>
-                      Отправка заявки без онлайн-оплаты.
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className={styles.section2}>
-              <div className={styles.container}>
-                <div className={styles.heading2}>
-                  <div className={styles.div15}>Платформа для разных ролей</div>
-                </div>
-                <div className={styles.paragraph}>
-                  <div className={styles.div16}>
-                    Функциональность для покупателей, агентств и застройщиков
-                  </div>
-                </div>
-              </div>
-              <div className={styles.container12}>
-                <div className={styles.container13}>
-                  <div className={styles.container14}>
-                    <img
-                      className={styles.imageIcon}
-                      src="/assets/source/Image.jpg"
-                      alt=""
-                    />
-                    <div className={styles.container15} />
-                    <div className={styles.container16}>
-                      <img
-                        className={styles.containerIcon5}
-                        src="/assets/Icon-17.svg"
-                        alt=""
-                      />
-                      <div className={styles.heading35}>
-                        <div className={styles.div17}>Покупателям</div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className={styles.container17}>
-                    <div className={styles.list}>
-                      <div className={styles.listItem}>
-                        <img
-                          className={styles.containerIcon6}
-                          src="/assets/Icon-16.svg"
-                          alt=""
-                        />
-                        <div className={styles.text}>
-                          <div className={styles.div18}>
-                            Проверенные объявления
-                          </div>
-                        </div>
-                      </div>
-                      <div className={styles.listItem}>
-                        <img
-                          className={styles.containerIcon6}
-                          src="/assets/Icon-16.svg"
-                          alt=""
-                        />
-                        <div className={styles.text2}>
-                          <div className={styles.div18}>Карта и фильтры</div>
-                        </div>
-                      </div>
-                      <div className={styles.listItem}>
-                        <img
-                          className={styles.containerIcon6}
-                          src="/assets/Icon-16.svg"
-                          alt=""
-                        />
-                        <div className={styles.text3}>
-                          <div className={styles.div18}>
-                            Прямая связь с агентствами
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    <div className={styles.button}>
-                      <div className={styles.div21}>Подробнее</div>
-                    </div>
-                  </div>
-                </div>
-                <div className={styles.container18}>
-                  <div className={styles.container14}>
-                    <img
-                      className={styles.imageIcon}
-                      src="/assets/Image (Агентствам).png"
-                      alt=""
-                    />
-                    <div className={styles.container15} />
-                    <div className={styles.container21}>
-                      <img
-                        className={styles.containerIcon5}
-                        src="/assets/Icon-15.svg"
-                        alt=""
-                      />
-                      <div className={styles.heading35}>
-                        <div className={styles.div17}>Агентствам</div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className={styles.container17}>
-                    <div className={styles.list}>
-                      <div className={styles.listItem}>
-                        <img
-                          className={styles.containerIcon6}
-                          src="/assets/Icon-16.svg"
-                          alt=""
-                        />
-                        <div className={styles.text4}>
-                          <div className={styles.div18}>Личный кабинет</div>
-                        </div>
-                      </div>
-                      <div className={styles.listItem}>
-                        <img
-                          className={styles.containerIcon6}
-                          src="/assets/Icon-16.svg"
-                          alt=""
-                        />
-                        <div className={styles.text5}>
-                          <div className={styles.div18}>
-                            Управление объявлениями
-                          </div>
-                        </div>
-                      </div>
-                      <div className={styles.listItem}>
-                        <img
-                          className={styles.containerIcon6}
-                          src="/assets/Icon-16.svg"
-                          alt=""
-                        />
-                        <div className={styles.text6}>
-                          <div className={styles.div18}>Заявки и чаты</div>
-                        </div>
-                      </div>
-                    </div>
-                    <div className={styles.button}>
-                      <div className={styles.div26}>Подробнее</div>
-                    </div>
-                  </div>
-                </div>
-                <div className={styles.container23}>
-                  <div className={styles.container14}>
-                    <img
-                      className={styles.imageIcon}
-                      src="/assets/Image (Застройщикам).png"
-                      alt=""
-                    />
-                    <div className={styles.container15} />
-                    <div className={styles.container26}>
-                      <img
-                        className={styles.containerIcon5}
-                        src="/assets/Icon-14.svg"
-                        alt=""
-                      />
-                      <div className={styles.heading37}>
-                        <div className={styles.div17}>Застройщикам</div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className={styles.container17}>
-                    <div className={styles.list}>
-                      <div className={styles.listItem}>
-                        <img
-                          className={styles.containerIcon6}
-                          src="/assets/Icon-16.svg"
-                          alt=""
-                        />
-                        <div className={styles.text7}>
-                          <div className={styles.div18}>
-                            Размещение новостроек
-                          </div>
-                        </div>
-                      </div>
-                      <div className={styles.listItem}>
-                        <img
-                          className={styles.containerIcon6}
-                          src="/assets/Icon-16.svg"
-                          alt=""
-                        />
-                        <div className={styles.text8}>
-                          <div className={styles.div18}>
-                            Управление проектами
-                          </div>
-                        </div>
-                      </div>
-                      <div className={styles.listItem}>
-                        <img
-                          className={styles.containerIcon6}
-                          src="/assets/Icon-16.svg"
-                          alt=""
-                        />
-                        <div className={styles.text9}>
-                          <div className={styles.div18}>
-                            Аналитика просмотров
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    <div className={styles.button}>
-                      <div className={styles.div21}>Подробнее</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className={styles.section3}>
-              <div className={styles.container28}>
-                <div className={styles.container29}>
-                  <img
-                    className={styles.icon}
-                    src="/assets/Icon-13.svg"
-                    alt=""
-                  />
-                  <div className={styles.text10}>
-                    <div className={styles.div32}>Система контроля</div>
-                  </div>
-                </div>
-                <div className={styles.heading23}>
-                  <div className={styles.div33}>
-                    Безопасность и контроль качества
-                  </div>
-                </div>
-                <div className={styles.paragraph7}>
-                  <div className={styles.div34}>
-                    Верификация агентств, модерация объявлений и защищённая
-                    коммуникация.
-                  </div>
-                </div>
-                <div className={styles.container30}>
-                  <div className={styles.button4} onClick={() => navigate('/catalog')} style={{ cursor: 'pointer' }}>
-                    <div className={styles.div35}>Найти объект</div>
-                  </div>
-                  <div className={styles.button5}>
-                    <div className={styles.div36}>
-                      Зарегистрировать агентство
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className={styles.container31}>
-                <div className={styles.container32}>
-                  <div className={styles.container33}>
-                    <div className={styles.container34}>
-                      <img
-                        className={styles.containerIcon17}
-                        src="/assets/Icon-12.svg"
-                        alt=""
-                      />
-                      <div className={styles.container35}>
-                        <div className={styles.container36}>
-                          <div className={styles.heading38}>
-                            <div className={styles.div37}>
-                              Верификация объявлений
-                            </div>
-                          </div>
-                          <div className={styles.text11}>
-                            <div className={styles.div38}>Проверено</div>
-                          </div>
-                        </div>
-                        <div className={styles.paragraph8}>
-                          <div className={styles.div39}>
-                            Проверка данных агентств и документов.
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className={styles.container33}>
-                    <div className={styles.container34}>
-                      <img
-                        className={styles.containerIcon17}
-                        src="/assets/Icon-11.svg"
-                        alt=""
-                      />
-                      <div className={styles.container35}>
-                        <div className={styles.container36}>
-                          <div className={styles.heading39}>
-                            <div className={styles.div37}>
-                              Модерация контента
-                            </div>
-                          </div>
-                          <div className={styles.text12}>
-                            <div className={styles.div38}>
-                              Контроль качества
-                            </div>
-                          </div>
-                        </div>
-                        <div className={styles.paragraph8}>
-                          <div className={styles.div39}>
-                            Ручная проверка всех объявлений.
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className={styles.container33}>
-                    <div className={styles.container34}>
-                      <img
-                        className={styles.containerIcon17}
-                        src="/assets/Icon-10.svg"
-                        alt=""
-                      />
-                      <div className={styles.container35}>
-                        <div className={styles.container36}>
-                          <div className={styles.heading310}>
-                            <div className={styles.div37}>
-                              Безопасная коммуникация
-                            </div>
-                          </div>
-                          <div className={styles.text13}>
-                            <div className={styles.div38}>Защищено</div>
-                          </div>
-                        </div>
-                        <div className={styles.paragraph8}>
-                          <div className={styles.div39}>
-                            Встроенный чат без передачи личных данных.
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className={styles.container45}>
-                  <div className={styles.container46}>
-                    <div className={styles.container47}>
-                      <div className={styles.k}>~10K</div>
-                    </div>
-                    <div className={styles.container48}>
-                      <div className={styles.infoplatformkz}>Объектов</div>
-                    </div>
-                  </div>
-                  <div className={styles.container49}>
-                    <div className={styles.container47}>
-                      <div className={styles.k}>~500</div>
-                    </div>
-                    <div className={styles.container48}>
-                      <div className={styles.infoplatformkz}>Агентств</div>
-                    </div>
-                  </div>
-                  <div className={styles.container52}>
-                    <div className={styles.container47}>
-                      <div className={styles.k}>~50K</div>
-                    </div>
-                    <div className={styles.container48}>
-                      <div className={styles.infoplatformkz}>Пользователей</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className={styles.section4}>
-              <div className={styles.container55}>
-                <div className={styles.container56} />
-              </div>
-              <div className={styles.container57}>
-                <div className={styles.container58}>
-                  <div className={styles.heading1}>
-                    <div className={styles.div50}>
-                      Платформа для агентств и застройщиков
-                    </div>
-                  </div>
-                  <div className={styles.paragraph11}>
-                    <div className={styles.div51}>
-                      Размещение и поиск проверенной недвижимости с модерацией и
-                      прямой связью с агентствами.
-                    </div>
-                  </div>
-                  <div className={styles.container59}>
-                    <div className={styles.button6} onClick={() => navigate('/catalog')} style={{ cursor: 'pointer' }}>
-                      <img
-                        className={styles.icon2}
-                        src="/assets/Icon-21.svg"
-                        alt=""
-                      />
-                      <div className={styles.div52}>Найти объект</div>
-                    </div>
-                    <div className={styles.button7}>
-                      <div className={styles.div53}>
-                        Зарегистрировать агентство
-                      </div>
-                    </div>
-                  </div>
-                  <div className={styles.container60}>
-                    <div className={styles.container61}>
-                      <div className={styles.container62} />
-                      <div className={styles.text14}>
-                        <div className={styles.infoplatformkz}>
-                          Проверенные объявления
-                        </div>
-                      </div>
-                    </div>
-                    <div className={styles.container63}>
-                      <div className={styles.container62} />
-                      <div className={styles.text14}>
-                        <div className={styles.infoplatformkz}>Модерация</div>
-                      </div>
-                    </div>
-                    <div className={styles.container65}>
-                      <div className={styles.container62} />
-                      <div className={styles.text14}>
-                        <div className={styles.infoplatformkz}>
-                          Поиск на карте
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className={styles.container67}>
-                  <div className={styles.heading311}>
-                    <div className={styles.div37}>Быстрый поиск объектов</div>
-                  </div>
-                  <div className={styles.container68}>
-                    <div className={styles.container69}>
-                      <div className={styles.label}>
-                        <div className={styles.div32}>Город</div>
-                      </div>
-                      <div className={styles.container70}>
-                        <div className={styles.text17}>
-                          <div className={styles.div18}>Выберите город</div>
-                        </div>
-                        <img
-                          className={styles.icon3}
-                          src="/assets/Icon-8.svg"
-                          alt=""
-                        />
-                      </div>
-                    </div>
-                    <div className={styles.container69}>
-                      <div className={styles.label}>
-                        <div className={styles.div32}>Тип недвижимости</div>
-                      </div>
-                      <div className={styles.container70}>
-                        <div className={styles.text18}>
-                          <div className={styles.div18}>Квартира</div>
-                        </div>
-                        <img
-                          className={styles.icon3}
-                          src="/assets/Icon-7.svg"
-                          alt=""
-                        />
-                      </div>
-                    </div>
-                    <div className={styles.container73}>
-                      <div className={styles.container74}>
-                        <div className={styles.label}>
-                          <div className={styles.div32}>Цена от</div>
-                        </div>
-                        <div className={styles.textInput}>
-                          <div className={styles.div63}>0</div>
-                        </div>
-                      </div>
-                      <div className={styles.container75}>
-                        <div className={styles.label}>
-                          <div className={styles.div32}>Цена до</div>
-                        </div>
-                        <div className={styles.textInput}>
-                          <div className={styles.div63}>∞</div>
-                        </div>
-                      </div>
-                    </div>
-                    <div className={styles.button8}>
-                      <img
-                        className={styles.icon5}
-                        src="/assets/Icon-21.svg"
-                        alt=""
-                      />
-                      <div className={styles.div66}>Поиск</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+
+      {/* Header */}
+      <header className={styles.header}>
+        <div className={styles.headerContent}>
+          <div className={styles.logo}>
+            <img src="/assets/logo.png" alt="Qonys" />
           </div>
-          <div className={styles.footer}>
-            <div className={styles.container76}>
-              <div className={styles.container77}>
-                <div className={styles.container78}>
-                  <div className={styles.heading311}>
-                    <div className={styles.div37}>Qonys</div>
-                  </div>
-                  <div className={styles.paragraph12}>
-                    <div className={styles.div68}>
-                      Платформа для поиска проверенных объектов недвижимости.
-                      Соединяем покупателей, агентства и застройщиков.
-                    </div>
-                  </div>
-                  <div className={styles.container79}>
-                    <img
-                      className={styles.linkIcon}
-                      src="/assets/Icon-6.svg"
-                      alt=""
-                    />
-                    <img
-                      className={styles.linkIcon}
-                      src="/assets/Icon-5.svg"
-                      alt=""
-                    />
-                    <img
-                      className={styles.linkIcon}
-                      src="/assets/Icon-4.svg"
-                      alt=""
-                    />
-                  </div>
-                </div>
-                <div className={styles.container80}>
-                  <div className={styles.listItem}>
-                    <div className={styles.div69}>О платформе</div>
-                  </div>
-                  <div className={styles.list4}>
-                    <div className={styles.listItem10}>
-                      <div className={styles.div70}>О нас</div>
-                    </div>
-                    <div className={styles.listItem10}>
-                      <div className={styles.div70}>Как это работает</div>
-                    </div>
-                    <div className={styles.listItem10}>
-                      <div className={styles.div70}>Тарифы</div>
-                    </div>
-                    <div className={styles.listItem10}>
-                      <div className={styles.div70}>Блог</div>
-                    </div>
-                  </div>
-                </div>
-                <div className={styles.container81}>
-                  <div className={styles.listItem}>
-                    <div className={styles.div69}>Пользователям</div>
-                  </div>
-                  <div className={styles.list4}>
-                    <div className={styles.listItem10}>
-                      <div className={styles.div70}>Поиск объектов</div>
-                    </div>
-                    <div className={styles.listItem10}>
-                      <div className={styles.div70}>Агентствам</div>
-                    </div>
-                    <div className={styles.listItem10}>
-                      <div className={styles.div70}>Застройщикам</div>
-                    </div>
-                    <div className={styles.listItem10}>
-                      <div className={styles.div70}>Помощь</div>
-                    </div>
-                  </div>
-                </div>
-                <div className={styles.container82}>
-                  <div className={styles.listItem}>
-                    <div className={styles.div69}>Контакты</div>
-                  </div>
-                  <div className={styles.list6}>
-                    <div className={styles.listItem18}>
-                      <img
-                        className={styles.icon6}
-                        src="/assets/Icon-3.svg"
-                        alt=""
-                      />
-                      <div className={styles.text19}>
-                        <div className={styles.infoplatformkz}>
-                          г. Алматы, ул. Примерная, 123
-                        </div>
-                      </div>
-                    </div>
-                    <div className={styles.listItem19}>
-                      <img
-                        className={styles.icon7}
-                        src="/assets/Icon-2.svg"
-                        alt=""
-                      />
-                      <div className={styles.text20}>
-                        <div className={styles.infoplatformkz}>
-                          +7 700 000 00 00
-                        </div>
-                      </div>
-                    </div>
-                    <div className={styles.listItem19}>
-                      <img
-                        className={styles.icon7}
-                        src="/assets/Icon-1.svg"
-                        alt=""
-                      />
-                      <div className={styles.text21}>
-                        <div className={styles.infoplatformkz}>
-                          info@platform.kz
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className={styles.container83}>
-                <div className={styles.paragraph13}>
-                  <div className={styles.infoplatformkz}>
-                    © 2026 Qonys. Все права защищены.
-                  </div>
-                </div>
-                <div className={styles.container84}>
-                  <div className={styles.link}>
-                    <div className={styles.infoplatformkz}>
-                      Политика конфиденциальности
-                    </div>
-                  </div>
-                  <div className={styles.link2}>
-                    <div className={styles.infoplatformkz}>
-                      Условия использования
-                    </div>
-                  </div>
-                  <div className={styles.link3}>
-                    <div className={styles.infoplatformkz}>Cookie</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div className={styles.header}>
-        <div className={styles.container85}>
-          <div className={styles.container86}>
-            <div className={styles.paragraph14} style={{ display: 'flex', alignItems: 'center', height: '100%' }}>
-              <img src="/assets/logo.png" alt="Qonys" style={{ height: '80px', objectFit: 'contain', transform: 'translateY(10px)' }} />
-            </div>
-          </div>
-          <div className={styles.navigation}>
-            <div className={styles.link4} style={{ color: '#70a0ff' }}>
-              <div className={styles.div18}>Главная</div>
-            </div>
-            <div className={styles.button9} onClick={() => navigate('/catalog')} style={{ cursor: 'pointer' }}>
-              <div className={styles.div87}>Каталог</div>
-            </div>
-          </div>
-          <div className={styles.container87}>
+          <nav className={styles.navigation}>
+            <a className={`${styles.navLink} ${styles.active}`}>Главная</a>
+            <a className={styles.navLink} onClick={() => navigate('/catalog')} style={{ cursor: 'pointer' }}>Каталог</a>
+          </nav>
+          <div className={styles.headerActions}>
+            <button className={styles.themeToggle} onClick={toggleTheme} title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}>
+              {theme === 'light' ? '🌙' : '☀️'}
+            </button>
+
             {user ? (
-              /* ── Авторизован: кнопка действия (по роли) + кнопка профиля ── */
               <>
                 {user.role?.name === "agency" && (
-                  <div className={styles.button10} onClick={() => navigate("/agency")} style={{ cursor: "pointer" }}>
-                    <div className={styles.div88}>Создать объявление</div>
-                  </div>
+                  <button className={`${styles.btn} ${styles.btnPrimary}`} onClick={() => navigate("/agency")}>
+                    Создать объявление
+                  </button>
                 )}
                 {user.role?.name === "developer" && (
-                  <div className={styles.button10} onClick={() => navigate("/developer")} style={{ cursor: "pointer" }}>
-                    <div className={styles.div88}>Создать проект</div>
-                  </div>
+                  <button className={`${styles.btn} ${styles.btnPrimary}`} onClick={() => navigate("/developer")}>
+                    Создать проект
+                  </button>
                 )}
-                <div ref={profileMenuRef} style={{ position: "relative", marginLeft: "auto" }}>
-                <button
-                  onClick={() => setShowProfileMenu(v => !v)}
-                  style={{
-                    display: "flex", alignItems: "center", gap: 8,
-                    height: 44, padding: "0 16px",
-                    background: "#70a0ff",
-                    border: "none", borderRadius: 8,
-                    cursor: "pointer",
-                    fontFamily: "Inter, sans-serif",
-                    color: "#fff",
-                    transition: "all 0.3s ease",
-                  }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "#558bff"; (e.currentTarget as HTMLButtonElement).style.transform = "translateY(-2px)"; (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 4px 12px rgba(112,160,255,0.3)"; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "#70a0ff"; (e.currentTarget as HTMLButtonElement).style.transform = "none"; (e.currentTarget as HTMLButtonElement).style.boxShadow = "none"; }}
-                >
-                  {/* Аватар — белый круг с буквой */}
-                  <div style={{
-                    width: 28, height: 28, borderRadius: "50%",
-                    background: "rgba(255,255,255,0.25)",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    color: "#fff", fontSize: 13, fontWeight: 700, flexShrink: 0,
-                  }}>
-                    {(user.first_name || user.username || "?").charAt(0).toUpperCase()}
-                  </div>
-                  <span style={{ fontSize: 14, fontWeight: 500, lineHeight: "24px" }}>
-                    {user.first_name || user.username}
-                  </span>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M6 9l6 6 6-6"/>
-                  </svg>
-                </button>
-
-                {showProfileMenu && (
-                  <div style={{
-                    position: "absolute", top: "calc(100% + 8px)", right: 0,
-                    background: "#fff", borderRadius: 12,
-                    boxShadow: "0 8px 32px rgba(0,0,0,0.12)",
-                    border: "1px solid #f0f0f0", minWidth: 210, zIndex: 1000, overflow: "hidden",
-                    fontFamily: "Inter, sans-serif",
-                  }}>
-                    <div style={{ padding: "14px 16px", borderBottom: "1px solid #f5f5f5" }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: "#1a1a2e" }}>
-                        {user.first_name} {user.last_name}
-                      </div>
-                      <div style={{ fontSize: 12, color: "#939393", marginTop: 2 }}>{user.email}</div>
-                      <div style={{ fontSize: 11, color: "#70a0ff", marginTop: 2, fontWeight: 500 }}>
-                        {getRoleLabel(user.role?.name ?? "")}
-                      </div>
+                <div ref={profileMenuRef} style={{ position: "relative" }}>
+                  <button className={`${styles.btn} ${styles.btnPrimary}`} onClick={() => setShowProfileMenu(v => !v)} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <div style={{ width: 28, height: 28, borderRadius: "50%", background: "rgba(255,255,255,0.25)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 13, fontWeight: 700 }}>
+                      {(user.first_name || user.username || "?").charAt(0).toUpperCase()}
                     </div>
-                    <button
-                      onClick={() => { setShowProfileMenu(false); navigate(getDashboardRoute(user.role?.name ?? "")); }}
-                      style={{
-                        display: "flex", alignItems: "center", gap: 10, width: "100%",
-                        padding: "12px 16px", background: "none", border: "none",
-                        cursor: "pointer", fontSize: 13, color: "#1a1a2e",
-                        fontFamily: "Inter, sans-serif", textAlign: "left",
-                      }}
-                      onMouseEnter={e => (e.currentTarget.style.background = "#f7f9fa")}
-                      onMouseLeave={e => (e.currentTarget.style.background = "none")}
-                    >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#70a0ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
-                      </svg>
-                      Личный кабинет
-                    </button>
-                    <button
-                      onClick={handleLogout}
-                      style={{
-                        display: "flex", alignItems: "center", gap: 10, width: "100%",
-                        padding: "12px 16px", background: "none", border: "none",
-                        cursor: "pointer", fontSize: 13, color: "#f5222d",
-                        fontFamily: "Inter, sans-serif", textAlign: "left", borderTop: "1px solid #f5f5f5",
-                      }}
-                      onMouseEnter={e => (e.currentTarget.style.background = "#fff5f5")}
-                      onMouseLeave={e => (e.currentTarget.style.background = "none")}
-                    >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f5222d" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/>
-                      </svg>
-                      Выйти
-                    </button>
-                  </div>
-                )}
+                    <span style={{ display: 'none' }}>
+                      {user.first_name || user.username}
+                    </span>
+                  </button>
+
+                  {showProfileMenu && (
+                    <div style={{ position: "absolute", top: "calc(100% + 8px)", right: 0, background: "var(--color-bg)", borderRadius: 12, boxShadow: "0 8px 32px rgba(0,0,0,0.12)", border: "1px solid var(--color-border)", minWidth: 210, zIndex: 1000, overflow: "hidden" }}>
+                      <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--color-border)" }}>
+                        <div style={{ fontSize: 13, fontWeight: 600 }}>
+                          {user.first_name} {user.last_name}
+                        </div>
+                        <div style={{ fontSize: 12, color: "var(--color-text-secondary)", marginTop: 2 }}>{user.email}</div>
+                        <div style={{ fontSize: 11, color: "var(--color-primary)", marginTop: 2, fontWeight: 500 }}>
+                          {getRoleLabel(user.role?.name ?? "")}
+                        </div>
+                      </div>
+                      <button onClick={() => { setShowProfileMenu(false); navigate(getDashboardRoute(user.role?.name ?? "")); }} style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "12px 16px", background: "none", border: "none", cursor: "pointer", fontSize: 13, fontFamily: "Inter, sans-serif", textAlign: "left", color: "var(--color-text-primary)" }} onMouseEnter={e => (e.currentTarget.style.background = "var(--color-bg-secondary)")} onMouseLeave={e => (e.currentTarget.style.background = "none")}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        Личный кабинет
+                      </button>
+                      <button onClick={handleLogout} style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "12px 16px", background: "none", border: "none", cursor: "pointer", fontSize: 13, fontFamily: "Inter, sans-serif", textAlign: "left", color: "#f5222d", borderTop: "1px solid var(--color-border)" }} onMouseEnter={e => (e.currentTarget.style.background = "var(--color-bg-secondary)")} onMouseLeave={e => (e.currentTarget.style.background = "none")}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f5222d" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/>
+                        </svg>
+                        Выйти
+                      </button>
+                    </div>
+                  )}
                 </div>
               </>
             ) : (
-              /* ── Не авторизован: кнопки Войти / Зарегистрироваться ── */
               <>
-                <div className={styles.button10}>
-                  <div className={styles.div88}>Создать объявление</div>
-                </div>
-                <div className={styles.button11} onClick={() => setShowRegister(true)}>
-                  <div className={styles.div88}>Зарегистрироваться</div>
-                </div>
-                <div className={styles.button12} onClick={() => setShowLogin(true)}>
-                  <img src="/assets/Icon.svg" className={styles.icon9} />
-                  <div className={styles.div90}>Войти</div>
-                </div>
+                <button className={`${styles.btn} ${styles.btnSecondary}`} onClick={() => setShowRegister(true)}>
+                  Зарегистрироваться
+                </button>
+                <button className={`${styles.btn} ${styles.btnPrimary}`} onClick={() => setShowLogin(true)}>
+                  Войти
+                </button>
               </>
             )}
           </div>
         </div>
-      </div>
+      </header>
+
+      {/* Hero Section */}
+      <section className={`${styles.section} ${styles.sectionAlt}`}>
+        <div className={styles.sectionContainer}>
+          <div className={styles.sectionHeader}>
+            <h1 className={styles.sectionTitle}>Как работает платформа</h1>
+            <p className={styles.sectionSubtitle}>Четыре этапа работы с объектами недвижимости</p>
+          </div>
+          <div className={styles.featuresGrid}>
+            {[
+              { num: "01", title: "Поиск объектов на карте", desc: "Фильтрация по городу, району и параметрам." },
+              { num: "02", title: "Просмотр проверенных объявлений", desc: "Модерация и верификация всех объявлений." },
+              { num: "03", title: "Связь с агентством", desc: "Встроенный чат для прямого общения." },
+              { num: "04", title: "Бронирование объекта", desc: "Отправка заявки без онлайн-оплаты." },
+            ].map(feature => (
+              <div key={feature.num} className={styles.featureCard}>
+                <div className={styles.featureNumber}>{feature.num}</div>
+                <h3 className={styles.featureTitle}>{feature.title}</h3>
+                <p className={styles.featureDesc}>{feature.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Roles Section */}
+      <section className={styles.section}>
+        <div className={styles.sectionContainer}>
+          <div className={styles.sectionHeader}>
+            <h2 className={styles.sectionTitle}>Платформа для разных ролей</h2>
+            <p className={styles.sectionSubtitle}>Функциональность для покупателей, агентств и застройщиков</p>
+          </div>
+          <div className={styles.rolesGrid}>
+            {[
+              { title: "Покупателям", img: "/assets/source/image.jpg", icon: "/assets/Icon-17.svg", items: ["Проверенные объявления", "Карта и фильтры", "Прямая связь с агентствами"] },
+              { title: "Агентствам", img: "/assets/Image (Агентствам).png", icon: "/assets/Icon-15.svg", items: ["Личный кабинет", "Управление объявлениями", "Заявки и чаты"] },
+              { title: "Застройщикам", img: "/assets/Image (Застройщикам).png", icon: "/assets/Icon-14.svg", items: ["Размещение новостроек", "Управление проектами", "Аналитика просмотров"] },
+            ].map(role => (
+              <div key={role.title} className={styles.roleCard}>
+                <img src={role.img} alt={role.title} className={styles.roleCardImage} />
+                <div className={styles.roleCardContent}>
+                  <div className={styles.roleCardHeader}>
+                    <img src={role.icon} alt="" className={styles.roleCardIcon} />
+                    <h3 className={styles.roleCardTitle}>{role.title}</h3>
+                  </div>
+                  <ul className={styles.roleCardList}>
+                    {role.items.map((item, i) => (
+                      <li key={i} className={styles.roleCardListItem}>
+                        <img src="/assets/Icon-16.svg" alt="" className={styles.roleCardListIcon} />
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                  <button className={styles.roleCardBtn}>Подробнее</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Security Section */}
+      <section className={`${styles.section} ${styles.sectionAlt}`}>
+        <div className={styles.sectionContainer}>
+          <div className={styles.sectionHeader}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', justifyContent: 'center', marginBottom: '1rem' }}>
+              <img src="/assets/Icon-13.svg" alt="" style={{ width: 24, height: 24 }} />
+              <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>Система контроля</span>
+            </div>
+            <h2 className={styles.sectionTitle}>Безопасность и контроль качества</h2>
+            <p className={styles.sectionSubtitle}>Верификация агентств, модерация объявлений и защищённая коммуникация.</p>
+          </div>
+
+          <div className={styles.securityContainer}>
+            <div className={styles.securityFeatures}>
+              {[
+                { icon: "/assets/Icon-12.svg", title: "Верификация объявлений", badge: "Проверено", desc: "Проверка данных агентств и документов." },
+                { icon: "/assets/Icon-11.svg", title: "Модерация контента", badge: "Контроль качества", desc: "Ручная проверка всех объявлений." },
+                { icon: "/assets/Icon-10.svg", title: "Безопасная коммуникация", badge: "Защищено", desc: "Встроенный чат без передачи личных данных." },
+              ].map(item => (
+                <div key={item.title} style={{ display: 'flex', gap: '1.5rem' }}>
+                  <img src={item.icon} alt="" style={{ width: 48, height: 48, flexShrink: 0, objectFit: 'contain' }} />
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                      <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600, color: 'var(--color-text-primary)' }}>{item.title}</h4>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-primary)', background: 'rgba(112, 160, 255, 0.1)', padding: '0.25rem 0.5rem', borderRadius: '0.25rem' }}>{item.badge}</span>
+                    </div>
+                    <p style={{ margin: 0, color: 'var(--color-text-secondary)', fontSize: '0.95rem', lineHeight: 1.6 }}>{item.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className={styles.statsGrid} style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))' }}>
+              {[
+                { num: "~10K", label: "Объектов" },
+                { num: "~500", label: "Агентств" },
+                { num: "~50K", label: "Пользователей" },
+              ].map(stat => (
+                <div key={stat.label} className={styles.statBox}>
+                  <div className={styles.statNumber}>{stat.num}</div>
+                  <div className={styles.statLabel}>{stat.label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ marginTop: '2rem', display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+            <button className={`${styles.btn} ${styles.btnPrimary}`} onClick={() => navigate('/catalog')} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <img src="/assets/Icon-21.svg" alt="" style={{ width: 20, height: 20 }} />
+              Найти объект
+            </button>
+            <button className={`${styles.btn} ${styles.btnSecondary}`}>
+              Зарегистрировать агентство
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* Quick Search Section */}
+      <section className={styles.section}>
+        <div className={styles.sectionContainer}>
+          <h2 className={styles.sectionTitle} style={{ textAlign: 'left', marginBottom: '1.5rem' }}>Быстрый поиск объектов</h2>
+          <div className={styles.searchSection}>
+            <form className={styles.searchForm}>
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Город</label>
+                <input type="text" placeholder="Выберите город" className={styles.formInput} />
+              </div>
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Тип недвижимости</label>
+                <input type="text" placeholder="Квартира" className={styles.formInput} />
+              </div>
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Цена от</label>
+                <input type="number" placeholder="0" className={styles.formInput} />
+              </div>
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Цена до</label>
+                <input type="number" placeholder="∞" className={styles.formInput} />
+              </div>
+              <button type="button" className={styles.searchBtn}>
+                <img src="/assets/Icon-21.svg" alt="" style={{ width: 16, height: 16 }} />
+                Поиск
+              </button>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className={styles.footer}>
+        <div className={styles.sectionContainer}>
+          <div className={styles.footerContent}>
+            <div className={styles.footerSection}>
+              <h4>Qonys</h4>
+              <p>Платформа для поиска проверенных объектов недвижимости. Соединяем покупателей, агентства и застройщиков.</p>
+              <div style={{ display: 'flex', gap: '1rem' }}>
+                <img src="/assets/Icon-6.svg" alt="" style={{ width: 20, height: 20, cursor: 'pointer', opacity: 0.8 }} />
+                <img src="/assets/Icon-5.svg" alt="" style={{ width: 20, height: 20, cursor: 'pointer', opacity: 0.8 }} />
+                <img src="/assets/Icon-4.svg" alt="" style={{ width: 20, height: 20, cursor: 'pointer', opacity: 0.8 }} />
+              </div>
+            </div>
+            <div className={styles.footerSection}>
+              <h4>О платформе</h4>
+              <ul className={styles.footerLinks}>
+                <a href="#">О нас</a>
+                <a href="#">Как это работает</a>
+                <a href="#">Тарифы</a>
+                <a href="#">Блог</a>
+              </ul>
+            </div>
+            <div className={styles.footerSection}>
+              <h4>Пользователям</h4>
+              <ul className={styles.footerLinks}>
+                <a href="#">Поиск объектов</a>
+                <a href="#">Агентствам</a>
+                <a href="#">Застройщикам</a>
+                <a href="#">Помощь</a>
+              </ul>
+            </div>
+            <div className={styles.footerSection}>
+              <h4>Контакты</h4>
+              <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                <img src="/assets/Icon-3.svg" alt="" style={{ width: 16, height: 16, flexShrink: 0 }} />
+                <span>г. Алматы, ул. Примерная, 123</span>
+              </div>
+              <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                <img src="/assets/Icon-2.svg" alt="" style={{ width: 16, height: 16, flexShrink: 0 }} />
+                <span>+7 700 000 00 00</span>
+              </div>
+              <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <img src="/assets/Icon-1.svg" alt="" style={{ width: 16, height: 16, flexShrink: 0 }} />
+                <span>info@platform.kz</span>
+              </div>
+            </div>
+          </div>
+
+          <div className={styles.footerBottom}>
+            <p className={styles.footerBottomText}>© 2026 Qonys. Все права защищены.</p>
+            <div className={styles.footerBottomLinks}>
+              <a href="#">Политика конфиденциальности</a>
+              <a href="#">Условия использования</a>
+              <a href="#">Cookie</a>
+            </div>
+          </div>
+        </div>
+      </footer>
+
+      {/* Modals */}
       {showLogin && (
         <div className={styles.modalOverlay}>
           <div className={styles.modalContent}>

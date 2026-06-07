@@ -7,6 +7,8 @@ import {
   getChats,
   getMessages,
   sendMessage,
+  markMessagesRead,
+  connectChatMessagesSocket,
   updateApplicationStatus,
   getCompanyListings,
   createListing,
@@ -26,7 +28,6 @@ import {
   type CreateListingPayload,
 } from "../api/dashboard";
 import { getErrorMessage } from "../api/auth";
-import { markChatRead, applyReadStatus } from "../utils/chatRead";
 import MapPicker from "../components/MapPicker";
 import s from "../css/AgencyDashboard.module.css";
 
@@ -149,10 +150,37 @@ function AgencyChatWindow({
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    getMessages(chat.application_id)
-      .then(setMessages)
-      .catch(console.error)
-      .finally(() => setLoading(false));
+    let cancelled = false;
+
+    const refreshMessages = async () => {
+      try {
+        const data = await getMessages(chat.application_id);
+        if (!cancelled) setMessages(data);
+        await markMessagesRead(chat.application_id);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    refreshMessages();
+    const intervalID = window.setInterval(refreshMessages, 30000);
+    const socket = connectChatMessagesSocket(chat.application_id, event => {
+      if (event.type === "message_created" && event.message) {
+        const message = event.message;
+        setMessages(prev => (
+          prev.some(msg => msg.id === message.id) ? prev : [...prev, message]
+        ));
+        markMessagesRead(chat.application_id).catch(console.error);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalID);
+      socket?.close();
+    };
   }, [chat.application_id]);
 
   useEffect(() => {
@@ -165,7 +193,7 @@ function AgencyChatWindow({
     setSending(true);
     try {
       const msg = await sendMessage(chat.application_id, body);
-      setMessages(prev => [...prev, msg]);
+      setMessages(prev => (prev.some(m => m.id === msg.id) ? prev : [...prev, msg]));
       setText("");
     } catch (e) {
       console.error(e);
@@ -1239,7 +1267,7 @@ const AgencyDashboardContent: FunctionComponent = () => {
     setChatsLoading(true);
     setChatsError(null);
     getChats()
-      .then(data => { setChatSummaries(applyReadStatus(data)); setChatsLoaded(true); })
+      .then(data => { setChatSummaries(data); setChatsLoaded(true); })
       .catch(e => setChatsError(getErrorMessage(e)))
       .finally(() => setChatsLoading(false));
   }, []);
@@ -1259,6 +1287,20 @@ const AgencyDashboardContent: FunctionComponent = () => {
     if (activeTab === "listings"     && !listingsLoaded && !listingsLoading) loadListings();
     if (activeTab === "messages"     && !chatsLoaded && !chatsLoading) loadChats();
   }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab !== "messages" || activeChat) return;
+
+    const refreshChats = () => {
+      getChats()
+        .then(data => setChatSummaries(data))
+        .catch(e => setChatsError(getErrorMessage(e)));
+    };
+
+    refreshChats();
+    const intervalID = window.setInterval(refreshChats, 5000);
+    return () => window.clearInterval(intervalID);
+  }, [activeTab, activeChat]);
 
   // ── Status update ─────────────────────────────────────────────────────────
 
@@ -1404,8 +1446,8 @@ const AgencyDashboardContent: FunctionComponent = () => {
               key={chat.application_id}
               style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: chat.is_unread ? "#f0f7ff" : "#fff", padding: "16px 20px", borderRadius: 12, border: `1px solid ${chat.is_unread ? "#c5d9ff" : "#e8e8e8"}`, cursor: "pointer" }}
               onClick={() => {
-                markChatRead(chat.application_id);
                 if (chat.is_unread) {
+                  markMessagesRead(chat.application_id).catch(console.error);
                   setChatSummaries(prev => prev.map(c =>
                     c.application_id === chat.application_id ? { ...c, is_unread: false } : c
                   ));

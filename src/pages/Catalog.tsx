@@ -73,6 +73,19 @@ const DEAL_TYPES = [
 
 const CITIES = ["", "Алматы", "Астана", "Шымкент"];
 
+const PROPERTY_TYPE_LABELS: Record<string, string> = {
+  apartment: "Квартира",
+  house: "Дом",
+  studio: "Студия",
+  commercial: "Коммерческое",
+  land: "Земля",
+};
+
+const DEAL_TYPE_LABELS: Record<string, string> = {
+  rent: "Аренда",
+  sale: "Продажа",
+};
+
 function getDashboardRoute(roleName: string): string {
   if (roleName === "admin" || roleName === "moderator") return "/admin";
   if (roleName === "agency") return "/agency";
@@ -420,6 +433,50 @@ const Catalog: FunctionComponent = () => {
                 Сбросить
               </button>
             </div>
+          </div>
+
+          <div className={styles.listingsHeader}>
+            <div className={styles.listingsTitle}>Объявления</div>
+            <div className={styles.listingsCount}>
+              {loading ? "..." : filtered.length}
+            </div>
+          </div>
+
+          <div className={styles.propertyList}>
+            {loading && (
+              <div className={styles.emptyListState}>Загружаем объявления...</div>
+            )}
+            {!loading && !error && filtered.length === 0 && (
+              <div className={styles.emptyListState}>По выбранным фильтрам объявлений нет</div>
+            )}
+            {!loading && !error && filtered.map(item => {
+              const imageUrl = item.media?.[0]?.url || "https://placehold.co/600x400?text=Нет+фото";
+              const propertyLabel = PROPERTY_TYPE_LABELS[item.property_type] ?? item.property_type;
+              const dealLabel = DEAL_TYPE_LABELS[item.deal_type] ?? item.deal_type;
+              const details = [
+                propertyLabel,
+                dealLabel,
+                item.rooms != null ? `${item.rooms} комн.` : null,
+                item.area != null ? `${item.area} м²` : null,
+              ].filter(Boolean).join(" · ");
+
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  className={styles.propertyCardShort}
+                  onClick={() => navigate(`/property/${item.id}`)}
+                >
+                  <img src={imageUrl} alt={item.title} className={styles.propertyImage} />
+                  <div className={styles.propertyInfo}>
+                    <div className={styles.propertyPrice}>{item.price.toLocaleString("ru-RU")} ₸</div>
+                    <div className={styles.propertyTitle}>{item.title}</div>
+                    <div className={styles.propertyAddress}>{item.address || item.city}</div>
+                    <div className={styles.propertyMeta}>{details}</div>
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>

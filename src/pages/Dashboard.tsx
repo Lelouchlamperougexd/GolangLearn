@@ -10,6 +10,8 @@ import {
   getChats,
   getMessages,
   sendMessage,
+  markMessagesRead,
+  connectChatMessagesSocket,
   updateProfile,
   uploadAvatar,
   changePassword,
@@ -22,7 +24,6 @@ import {
   type ApplicationMessage,
 } from "../api/dashboard";
 import { getErrorMessage } from "../api/auth";
-import { markChatRead, applyReadStatus } from "../utils/chatRead";
 
 const logo = "/assets/logo.png";
 
@@ -166,10 +167,37 @@ function ChatWindow({
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    getMessages(chat.application_id)
-      .then(setMessages)
-      .catch(console.error)
-      .finally(() => setLoading(false));
+    let cancelled = false;
+
+    const refreshMessages = async () => {
+      try {
+        const data = await getMessages(chat.application_id);
+        if (!cancelled) setMessages(data);
+        await markMessagesRead(chat.application_id);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    refreshMessages();
+    const intervalID = window.setInterval(refreshMessages, 30000);
+    const socket = connectChatMessagesSocket(chat.application_id, event => {
+      if (event.type === "message_created" && event.message) {
+        const message = event.message;
+        setMessages(prev => (
+          prev.some(msg => msg.id === message.id) ? prev : [...prev, message]
+        ));
+        markMessagesRead(chat.application_id).catch(console.error);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalID);
+      socket?.close();
+    };
   }, [chat.application_id]);
 
   useEffect(() => {
@@ -182,7 +210,7 @@ function ChatWindow({
     setSending(true);
     try {
       const msg = await sendMessage(chat.application_id, body);
-      setMessages(prev => [...prev, msg]);
+      setMessages(prev => (prev.some(m => m.id === msg.id) ? prev : [...prev, msg]));
       setText("");
     } catch (e) {
       console.error(e);
@@ -316,7 +344,7 @@ const Dashboard: FunctionComponent = () => {
       .catch(e => setOverviewError(getErrorMessage(e)))
       .finally(() => setOverviewLoading(false));
     getChats()
-      .then(data => setChats(applyReadStatus(data)))
+      .then(setChats)
       .catch(() => {});
     getMyApplications()
       .then(setApplications)
@@ -345,11 +373,25 @@ const Dashboard: FunctionComponent = () => {
       setChatsLoading(true);
       setChatsError(null);
       getChats()
-        .then(data => setChats(applyReadStatus(data)))
+        .then(setChats)
         .catch(e => setChatsError(getErrorMessage(e)))
         .finally(() => setChatsLoading(false));
     }
   }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab !== "messages" || activeChat) return;
+
+    const refreshChats = () => {
+      getChats()
+        .then(setChats)
+        .catch(e => setChatsError(getErrorMessage(e)));
+    };
+
+    refreshChats();
+    const intervalID = window.setInterval(refreshChats, 5000);
+    return () => window.clearInterval(intervalID);
+  }, [activeTab, activeChat]);
 
   // ── Handlers ──────────────────────────────────────────────────────────────
   const handleRemoveFavorite = async (listingId: number) => {
@@ -672,8 +714,8 @@ const Dashboard: FunctionComponent = () => {
                 key={chat.application_id}
                 className={styles.messageCard}
                 onClick={() => {
-                  markChatRead(chat.application_id);
                   if (chat.is_unread) {
+                    markMessagesRead(chat.application_id).catch(console.error);
                     setChats(prev => prev.map(c => c.application_id === chat.application_id ? { ...c, is_unread: false } : c));
                     setOverview(prev => prev ? { ...prev, unread_messages_count: Math.max(0, prev.unread_messages_count - 1) } : prev);
                   }
