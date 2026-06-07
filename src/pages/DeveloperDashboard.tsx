@@ -7,6 +7,8 @@ import {
   getChats,
   getMessages,
   sendMessage,
+  markMessagesRead,
+  connectChatMessagesSocket,
   updateApplicationStatus,
   updateProfile,
   changePassword,
@@ -26,7 +28,6 @@ import {
   type CreateListingPayload,
 } from "../api/dashboard";
 import { getErrorMessage } from "../api/auth";
-import { markChatRead, applyReadStatus } from "../utils/chatRead";
 import MapPicker from "../components/MapPicker";
 import s from "../css/DeveloperDashboard.module.css";
 
@@ -115,10 +116,37 @@ function DevChatWindow({ chat, userId, onBack }: { chat: ChatSummary; userId: nu
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    getMessages(chat.application_id)
-      .then(setMessages)
-      .catch(console.error)
-      .finally(() => setLoading(false));
+    let cancelled = false;
+
+    const refreshMessages = async () => {
+      try {
+        const data = await getMessages(chat.application_id);
+        if (!cancelled) setMessages(data);
+        await markMessagesRead(chat.application_id);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    refreshMessages();
+    const intervalID = window.setInterval(refreshMessages, 30000);
+    const socket = connectChatMessagesSocket(chat.application_id, event => {
+      if (event.type === "message_created" && event.message) {
+        const message = event.message;
+        setMessages(prev => (
+          prev.some(msg => msg.id === message.id) ? prev : [...prev, message]
+        ));
+        markMessagesRead(chat.application_id).catch(console.error);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalID);
+      socket?.close();
+    };
   }, [chat.application_id]);
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
@@ -129,7 +157,7 @@ function DevChatWindow({ chat, userId, onBack }: { chat: ChatSummary; userId: nu
     setSending(true);
     try {
       const msg = await sendMessage(chat.application_id, body);
-      setMessages(prev => [...prev, msg]);
+      setMessages(prev => (prev.some(m => m.id === msg.id) ? prev : [...prev, msg]));
       setText("");
     } catch (e) { console.error(e); }
     finally { setSending(false); }
@@ -941,6 +969,7 @@ const DeveloperDashboardContent: FunctionComponent = () => {
   const [obStep, setObStep] = useState(0);
   const [showOnboarding, setShowOnboarding] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [showAddProjectModal, setShowAddProjectModal] = useState(false);
   const [showAddObjectModal, setShowAddObjectModal] = useState(false);
 
@@ -1005,7 +1034,7 @@ const DeveloperDashboardContent: FunctionComponent = () => {
     setChatsLoading(true);
     setChatsError(null);
     getChats()
-      .then(data => { setChatSummaries(applyReadStatus(data)); setChatsLoaded(true); })
+      .then(data => { setChatSummaries(data); setChatsLoaded(true); })
       .catch(e => setChatsError(getErrorMessage(e)))
       .finally(() => setChatsLoading(false));
   }, []);
@@ -1035,6 +1064,7 @@ const DeveloperDashboardContent: FunctionComponent = () => {
       loadChats();
       loadProjects();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on mount
   }, []);
 
   useEffect(() => {
@@ -1044,7 +1074,22 @@ const DeveloperDashboardContent: FunctionComponent = () => {
     if (activeTab === "objects"      && !listingsLoaded && !listingsLoading) loadListings();
     if (activeTab === "analytics"    && !projectsLoaded && !projectsLoading) loadProjects();
     if (activeTab === "analytics"    && !listingsLoaded && !listingsLoading) loadListings();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- lazy-load only when the tab changes
   }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab !== "messages" || activeChat) return;
+
+    const refreshChats = () => {
+      getChats()
+        .then(data => setChatSummaries(data))
+        .catch(e => setChatsError(getErrorMessage(e)));
+    };
+
+    refreshChats();
+    const intervalID = window.setInterval(refreshChats, 5000);
+    return () => window.clearInterval(intervalID);
+  }, [activeTab, activeChat]);
 
   const handleStatusChange = async (id: number, status: 'new' | 'review' | 'approved' | 'rejected') => {
     const updated = await updateApplicationStatus(id, status);
@@ -1264,8 +1309,8 @@ const DeveloperDashboardContent: FunctionComponent = () => {
           return (
             <div key={chat.application_id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: chat.is_unread ? "#f0f3ff" : "#fff", padding: "16px 20px", borderRadius: 12, border: `1px solid ${chat.is_unread ? "#c5d2ff" : "#e8e8e8"}`, cursor: "pointer" }}
               onClick={() => {
-                markChatRead(chat.application_id);
                 if (chat.is_unread) {
+                  markMessagesRead(chat.application_id).catch(console.error);
                   setChatSummaries(prev => prev.map(c =>
                     c.application_id === chat.application_id ? { ...c, is_unread: false } : c
                   ));
@@ -1390,8 +1435,19 @@ const DeveloperDashboardContent: FunctionComponent = () => {
 
   return (
     <div className={s.layout}>
+      {/* Mobile top bar with hamburger (hidden on desktop) */}
+      <div className={s.mobileBar}>
+        <button className={s.hamburger} onClick={() => setMobileNavOpen(true)} aria-label="Меню">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
+        </button>
+        <span className={s.mobileBarTitle}>Кабинет застройщика</span>
+      </div>
+
+      {/* Drawer backdrop */}
+      {mobileNavOpen && <div className={s.sidebarOverlay} onClick={() => setMobileNavOpen(false)} />}
+
       {/* Sidebar */}
-      <aside className={s.sidebar}>
+      <aside className={`${s.sidebar} ${mobileNavOpen ? s.sidebarOpen : ""}`}>
         <div style={{ padding: "20px 20px 16px", borderBottom: "1px solid #f0f0f0" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
             <img src={logo} alt="Qonys" style={{ height: 32, width: "auto", objectFit: "contain" }} />
@@ -1409,7 +1465,7 @@ const DeveloperDashboardContent: FunctionComponent = () => {
             <div
               key={item.key}
               className={`${s.navItem} ${activeTab === item.key ? s.navItemActive : ""}`}
-              onClick={() => { setActiveTab(item.key); if (item.key !== "messages") setActiveChat(null); }}
+              onClick={() => { setActiveTab(item.key); if (item.key !== "messages") setActiveChat(null); setMobileNavOpen(false); }}
             >
               <img src={item.icon} alt="" style={{ width: 18, opacity: activeTab === item.key ? 1 : 0.5 }} />
               {item.label}
@@ -1584,10 +1640,10 @@ const DeveloperDashboard: FunctionComponent = () => {
   const navigate = useNavigate();
   const { logout, user } = useAuth();
   const [status, setStatus] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(Boolean(user?.company_id));
 
   useEffect(() => {
-    if (!user?.company_id) { setLoading(false); return; }
+    if (!user?.company_id) return;
     adminAPI.getCompanyById(user.company_id)
       .then(company => setStatus(company.verification_status))
       .catch(() => setStatus("verified"))

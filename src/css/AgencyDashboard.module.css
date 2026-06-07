@@ -690,3 +690,88 @@
 .btnSecondary:hover { border-color: #70a0ff; }
 .formRowContainer { display: flex; gap: 16px; margin-bottom: 14px; }
 .formRowContainer > * { flex: 1; }
+
+/* Mobile top bar with hamburger — hidden on desktop. */
+.mobileBar { display: none; }
+.sidebarOverlay { display: none; }
+.hamburger {
+  width: 40px;
+  height: 40px;
+  border: 1px solid #e8e8e8;
+  border-radius: 8px;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #3a3a3a;
+  flex-shrink: 0;
+}
+
+/* ─── RESPONSIVE ─────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .layout {
+    flex-direction: column;
+    height: auto;
+    min-height: 100vh;
+    width: 100%;
+  }
+
+  .mobileBar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: #fff;
+    border-bottom: 1px solid #e8e8e8;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+
+  .mobileBarTitle {
+    font-size: 16px;
+    font-weight: 600;
+    color: #3a3a3a;
+  }
+
+  /* Sidebar becomes an off-canvas drawer, hidden until toggled. */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: 270px;
+    min-width: 0;
+    z-index: 1000;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+  }
+
+  .sidebarOpen {
+    transform: translateX(0);
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.2);
+  }
+
+  .sidebarOverlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 999;
+  }
+
+  .main {
+    overflow: visible;
+  }
+
+  .content {
+    padding: 20px 16px;
+    overflow-y: visible;
+  }
+
+  .formRowContainer {
+    flex-direction: column;
+    gap: 12px;
+  }
+}

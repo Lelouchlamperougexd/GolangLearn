@@ -367,3 +367,48 @@
   background-color: #e8e8e8;
   margin: 16px 0;
 }
+
+/* ─── RESPONSIVE ─────────────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  /* Let the modal size to its content instead of the fixed Figma height. */
+  .container {
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* Step 1 (role picker) is laid out with absolute Figma coordinates —
+     convert it to normal flow so it fits a phone screen.
+     The user/company forms keep their inline `position: sticky` header. */
+  .container18 {
+    position: static;
+    height: auto;
+    min-height: 60px;
+    padding: 14px 20px;
+  }
+
+  .container2 {
+    position: static;
+    width: 100%;
+    left: auto;
+    top: auto;
+    padding: 16px 20px 24px;
+    box-sizing: border-box;
+  }
+
+  /* Forms clear the (now static / sticky) header without the desktop 104px gap. */
+  .container2Outer {
+    width: 100%;
+    margin-top: 0;
+    max-height: none;
+    padding-left: 20px;
+    padding-right: 20px;
+    box-sizing: border-box;
+  }
+
+  /* Two-column rows stack vertically. */
+  .formRow {
+    flex-direction: column;
+    gap: 14px;
+  }
+}

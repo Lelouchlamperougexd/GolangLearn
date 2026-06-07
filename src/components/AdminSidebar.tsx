@@ -8,6 +8,7 @@ const logo = "/assets/logo.png";
 interface Props {
   activeTab: string;
   onNav: (tab: string) => void;
+  open?: boolean;
 }
 
 const NAV_ITEMS = [
@@ -19,11 +20,11 @@ const NAV_ITEMS = [
   { key: "stats",      label: "Статистика",   icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M18 20V10M12 20V4M6 20v-6"/></svg> },
 ];
 
-const AdminSidebar: FunctionComponent<Props> = ({ activeTab, onNav }) => {
+const AdminSidebar: FunctionComponent<Props> = ({ activeTab, onNav, open = false }) => {
   const navigate = useNavigate();
   const { logout } = useAuth();
   return (
-    <aside className={s.sidebar}>
+    <aside className={`${s.sidebar} ${open ? s.sidebarOpen : ""}`}>
       <div className={s.sidebarTop}>
         <div className={s.sidebarLogo}>
           <img src={logo} alt="Qonys" className={s.sidebarLogoImg} />

@@ -160,6 +160,44 @@ export async function sendMessage(applicationId: number, body: string): Promise<
   return res.data.data;
 }
 
+/** PATCH /applications/{applicationID}/messages/read */
+export async function markMessagesRead(applicationId: number): Promise<void> {
+  await api.patch(`/applications/${applicationId}/messages/read`);
+}
+
+export interface ChatRealtimeEvent {
+  type: 'message_created' | 'messages_read';
+  application_id: number;
+  message?: ApplicationMessage;
+  user_id?: number;
+}
+
+export function connectChatMessagesSocket(
+  applicationId: number,
+  onEvent: (event: ChatRealtimeEvent) => void
+): WebSocket | null {
+  const token = localStorage.getItem('token');
+  if (!token) return null;
+
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const url = `${protocol}//${window.location.host}/ws/applications/${applicationId}/messages?token=${encodeURIComponent(token)}`;
+  const socket = new WebSocket(url);
+
+  socket.onmessage = (event) => {
+    try {
+      onEvent(JSON.parse(event.data) as ChatRealtimeEvent);
+    } catch (err) {
+      console.error('Invalid chat websocket message', err);
+    }
+  };
+
+  socket.onerror = (event) => {
+    console.error('Chat websocket error', event);
+  };
+
+  return socket;
+}
+
 /** PATCH /users/me — update profile */
 export async function updateProfile(payload: UpdateProfilePayload) {
   const res = await api.patch<Envelope<unknown>>('/users/me', payload);

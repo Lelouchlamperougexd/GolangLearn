@@ -179,12 +179,50 @@
   padding: 0 24px 24px;
 }
 
+.listingsHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px 12px;
+}
+
+.listingsTitle {
+  font-size: 15px;
+  font-weight: 600;
+  color: #3a3a3a;
+}
+
+.listingsCount {
+  min-width: 28px;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 12px;
+  background: #eef3ff;
+  color: #70a0ff;
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
 .propertyCardShort {
   border: 1px solid #e8e8e8;
-  border-radius: 12px;
+  border-radius: 8px;
   overflow: hidden;
   background: #fff;
   cursor: pointer;
+  font: inherit;
+  padding: 0;
+  text-align: left;
+  transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+}
+
+.propertyCardShort:hover {
+  border-color: #70a0ff;
+  box-shadow: 0 8px 22px rgba(112, 160, 255, 0.16);
+  transform: translateY(-1px);
 }
 
 .propertyImage {
@@ -216,6 +254,23 @@
   font-size: 12px;
   color: #737373;
   margin-bottom: 8px;
+}
+
+.propertyMeta {
+  font-size: 12px;
+  color: #3a3a3a;
+  line-height: 1.4;
+}
+
+.emptyListState {
+  border: 1px dashed #d9d9d9;
+  border-radius: 8px;
+  padding: 18px 14px;
+  color: #737373;
+  font-size: 13px;
+  line-height: 1.4;
+  text-align: center;
+  background: #fafafa;
 }
 
 /* Popup specific styles */
@@ -310,4 +365,67 @@
   justify-content: center !important;
   margin: 8px !important;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+/* ─── RESPONSIVE ─────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .catalogPage {
+    height: auto;
+    min-height: 100vh;
+  }
+
+  .header {
+    padding: 12px 16px;
+    height: auto;
+  }
+
+  .title {
+    font-size: 19px;
+  }
+
+  /* Stack the map on top and the filters/listings below it. */
+  .content {
+    flex-direction: column;
+    overflow: visible;
+  }
+
+  .mapContainer {
+    flex: none;
+    height: 48vh;
+    min-height: 260px;
+  }
+
+  .filtersContainer {
+    width: 100%;
+    border-left: none;
+    border-top: 1px solid #e8e8e8;
+    overflow-y: visible;
+  }
+}
+
+@media (max-width: 480px) {
+  .header {
+    padding: 10px 12px;
+  }
+
+  .title {
+    font-size: 17px;
+  }
+
+  .resultCount {
+    font-size: 12px;
+  }
+
+  .filtersHeader,
+  .filtersBody,
+  .propertyList,
+  .listingsHeader {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .mapContainer {
+    height: 42vh;
+    min-height: 220px;
+  }
 }

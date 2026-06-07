@@ -221,7 +221,7 @@ function CompaniesPage() {
       const company = await adminAPI.verifyCompany(id, status);
       setItems(prev => prev.map(c => c.id === id ? company : c));
       setSelected(prev => prev?.id === id ? company : prev);
-    } catch {}
+    } catch (e) { console.error(e); }
   };
 
   const openDocument = async (id: number) => {
@@ -242,7 +242,7 @@ function CompaniesPage() {
     try {
       const inv = await adminAPI.createInvite(inviteType);
       setInvite(inv);
-    } catch {}
+    } catch (e) { console.error(e); }
     setInviteLoading(false);
   };
 
@@ -630,7 +630,7 @@ function ComplaintsPage() {
       const complaint = await adminAPI.updateComplaintStatus(id, status);
       setItems(prev => prev.map(c => c.id === id ? complaint : c));
       setSelected(prev => prev?.id === id ? complaint : prev);
-    } catch {}
+    } catch (e) { console.error(e); }
   };
 
   const filtered = filter === "Все"
@@ -828,7 +828,7 @@ function UsersPage() {
       await adminAPI.updateUserStatus(id, is_active);
       setItems(prev => prev.map(u => u.id === id ? { ...u, is_active } : u));
       setConfirmBlock(null);
-    } catch {}
+    } catch (e) { console.error(e); }
   };
 
 
@@ -1045,11 +1045,11 @@ function StatsPage() {
   }, []);
 
   useEffect(() => {
-    setLoadingChart(true);
     adminAPI.getStatsActivity(periodDays[period])
       .then(data => setActivity(data))
       .catch(() => setActivity([]))
       .finally(() => setLoadingChart(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- refetch only when the period changes
   }, [period]);
 
   const chart  = activity.map(p => p.new_users + p.new_companies + p.new_listings);
@@ -1105,7 +1105,7 @@ function StatsPage() {
           <div className={s.chartTitle}>Активность за последние {period}</div>
           <div className={s.filterRow}>
             {["7 дней", "30 дней", "3 дня"].map(p => (
-              <button key={p} className={`${s.filterBtn} ${period === p ? s.filterBtnActive : ""}`} onClick={() => setPeriod(p)}>{p}</button>
+              <button key={p} className={`${s.filterBtn} ${period === p ? s.filterBtnActive : ""}`} onClick={() => { setPeriod(p); setLoadingChart(true); }}>{p}</button>
             ))}
           </div>
         </div>
@@ -1146,6 +1146,7 @@ function StatsPage() {
 
 const AdminDashboard: FunctionComponent = () => {
   const [tab, setTab] = useState("companies");
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   const pages: Record<string, ReactNode> = {
     companies:  <CompaniesPage />,
@@ -1158,7 +1159,18 @@ const AdminDashboard: FunctionComponent = () => {
 
   return (
     <div className={s.adminLayout}>
-      <AdminSidebar activeTab={tab} onNav={setTab} />
+      {/* Mobile top bar with hamburger (hidden on desktop) */}
+      <div className={s.mobileBar}>
+        <button className={s.hamburger} onClick={() => setMobileNavOpen(true)} aria-label="Меню">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
+        </button>
+        <span className={s.mobileBarTitle}>Панель администратора</span>
+      </div>
+
+      {/* Drawer backdrop */}
+      {mobileNavOpen && <div className={s.sidebarOverlay} onClick={() => setMobileNavOpen(false)} />}
+
+      <AdminSidebar activeTab={tab} onNav={(t) => { setTab(t); setMobileNavOpen(false); }} open={mobileNavOpen} />
       <main className={s.main}>
         <div className={s.content}>{pages[tab]}</div>
       </main>

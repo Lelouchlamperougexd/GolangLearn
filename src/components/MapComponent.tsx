@@ -10,7 +10,7 @@ import styles from "../css/Catalog.module.css";
 import { createRoot } from "react-dom/client";
 
 // Fix for default marker icons in Leaflet+React
-delete (L.Icon.Default.prototype as any)._getIconUrl;
+delete (L.Icon.Default.prototype as unknown as { _getIconUrl?: unknown })._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png",
   iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
@@ -45,7 +45,7 @@ const ClusterLayer = ({ properties }: { properties: Property[] }) => {
       map.removeLayer(clusterGroupRef.current);
     }
 
-    const clusterGroup = (L as any).markerClusterGroup({
+    const clusterGroup = L.markerClusterGroup({
       maxClusterRadius: 60,
       spiderfyOnMaxZoom: true,
       showCoverageOnHover: false,

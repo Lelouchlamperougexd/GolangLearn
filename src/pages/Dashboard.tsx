@@ -10,6 +10,8 @@ import {
   getChats,
   getMessages,
   sendMessage,
+  markMessagesRead,
+  connectChatMessagesSocket,
   updateProfile,
   uploadAvatar,
   changePassword,
@@ -22,7 +24,6 @@ import {
   type ApplicationMessage,
 } from "../api/dashboard";
 import { getErrorMessage } from "../api/auth";
-import { markChatRead, applyReadStatus } from "../utils/chatRead";
 
 const logo = "/assets/logo.png";
 
@@ -166,10 +167,37 @@ function ChatWindow({
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    getMessages(chat.application_id)
-      .then(setMessages)
-      .catch(console.error)
-      .finally(() => setLoading(false));
+    let cancelled = false;
+
+    const refreshMessages = async () => {
+      try {
+        const data = await getMessages(chat.application_id);
+        if (!cancelled) setMessages(data);
+        await markMessagesRead(chat.application_id);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    refreshMessages();
+    const intervalID = window.setInterval(refreshMessages, 30000);
+    const socket = connectChatMessagesSocket(chat.application_id, event => {
+      if (event.type === "message_created" && event.message) {
+        const message = event.message;
+        setMessages(prev => (
+          prev.some(msg => msg.id === message.id) ? prev : [...prev, message]
+        ));
+        markMessagesRead(chat.application_id).catch(console.error);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalID);
+      socket?.close();
+    };
   }, [chat.application_id]);
 
   useEffect(() => {
@@ -182,7 +210,7 @@ function ChatWindow({
     setSending(true);
     try {
       const msg = await sendMessage(chat.application_id, body);
-      setMessages(prev => [...prev, msg]);
+      setMessages(prev => (prev.some(m => m.id === msg.id) ? prev : [...prev, msg]));
       setText("");
     } catch (e) {
       console.error(e);
@@ -258,6 +286,7 @@ const Dashboard: FunctionComponent = () => {
   const navigate = useNavigate();
   const { logout, login, user, token } = useAuth();
   const [activeTab, setActiveTab] = useState<TabId>("overview");
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   // Data state
   const [overview, setOverview] = useState<DashboardOverview | null>(null);
@@ -316,7 +345,7 @@ const Dashboard: FunctionComponent = () => {
       .catch(e => setOverviewError(getErrorMessage(e)))
       .finally(() => setOverviewLoading(false));
     getChats()
-      .then(data => setChats(applyReadStatus(data)))
+      .then(setChats)
       .catch(() => {});
     getMyApplications()
       .then(setApplications)
@@ -345,11 +374,26 @@ const Dashboard: FunctionComponent = () => {
       setChatsLoading(true);
       setChatsError(null);
       getChats()
-        .then(data => setChats(applyReadStatus(data)))
+        .then(setChats)
         .catch(e => setChatsError(getErrorMessage(e)))
         .finally(() => setChatsLoading(false));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- load only when the tab changes
   }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab !== "messages" || activeChat) return;
+
+    const refreshChats = () => {
+      getChats()
+        .then(setChats)
+        .catch(e => setChatsError(getErrorMessage(e)));
+    };
+
+    refreshChats();
+    const intervalID = window.setInterval(refreshChats, 5000);
+    return () => window.clearInterval(intervalID);
+  }, [activeTab, activeChat]);
 
   // ── Handlers ──────────────────────────────────────────────────────────────
   const handleRemoveFavorite = async (listingId: number) => {
@@ -672,8 +716,8 @@ const Dashboard: FunctionComponent = () => {
                 key={chat.application_id}
                 className={styles.messageCard}
                 onClick={() => {
-                  markChatRead(chat.application_id);
                   if (chat.is_unread) {
+                    markMessagesRead(chat.application_id).catch(console.error);
                     setChats(prev => prev.map(c => c.application_id === chat.application_id ? { ...c, is_unread: false } : c));
                     setOverview(prev => prev ? { ...prev, unread_messages_count: Math.max(0, prev.unread_messages_count - 1) } : prev);
                   }
@@ -842,8 +886,19 @@ const Dashboard: FunctionComponent = () => {
 
   return (
     <div className={styles.dashboardPage}>
+      {/* Mobile top bar with hamburger (hidden on desktop) */}
+      <div className={styles.mobileBar}>
+        <button className={styles.hamburger} onClick={() => setMobileNavOpen(true)} aria-label="Меню">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
+        </button>
+        <span className={styles.mobileBarTitle}>Личный кабинет</span>
+      </div>
+
+      {/* Drawer backdrop */}
+      {mobileNavOpen && <div className={styles.sidebarOverlay} onClick={() => setMobileNavOpen(false)} />}
+
       {/* Sidebar */}
-      <aside className={styles.sidebar}>
+      <aside className={`${styles.sidebar} ${mobileNavOpen ? styles.sidebarOpen : ""}`}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "0 32px", marginBottom: 24 }}>
           <img src={logo} alt="Qonys Logo" style={{ height: 32, objectFit: "contain" }} />
           <span style={{ fontSize: 16, fontWeight: 700, color: "#1a1a2e", letterSpacing: "-0.3px" }}>Qonys</span>
@@ -863,7 +918,7 @@ const Dashboard: FunctionComponent = () => {
             <div
               key={item.id}
               className={`${styles.navItem} ${activeTab === item.id ? styles.navItemActive : ""}`}
-              onClick={() => { setActiveTab(item.id); if (item.id === "messages") setActiveChat(null); }}
+              onClick={() => { setActiveTab(item.id); if (item.id === "messages") setActiveChat(null); setMobileNavOpen(false); }}
             >
               <img src={item.icon} alt="" style={{ width: 18, opacity: activeTab === item.id ? 1 : 0.5 }} />
               {item.label}
@@ -876,7 +931,7 @@ const Dashboard: FunctionComponent = () => {
           ))}
           <div
             className={`${styles.navItem} ${activeTab === "settings" ? styles.navItemActive : ""}`}
-            onClick={() => setActiveTab("settings")}
+            onClick={() => { setActiveTab("settings"); setMobileNavOpen(false); }}
             style={{ marginTop: 16 }}
           >
             <img src="/assets/settings.svg" alt="" style={{ width: 18, opacity: activeTab === "settings" ? 1 : 0.5 }} />
