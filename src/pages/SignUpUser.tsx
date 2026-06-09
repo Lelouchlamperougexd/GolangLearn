@@ -1,16 +1,13 @@
 import { useState, type FunctionComponent } from "react";
-import { useNavigate } from "react-router-dom";
 import styles from "../css/SignUp.module.css";
 import { registerUser, getErrorMessage } from "../api/auth";
-import { useAuth, type User } from "../context/AuthContext";
 import { useLang } from "../context/LanguageContext";
 import { translations } from "../i18n/translations";
+import ConfirmEmail from "./ConfirmEmail";
 
 type Props = { onClose: () => void; onBack: () => void };
 
 const SignUpUser: FunctionComponent<Props> = ({ onClose, onBack }) => {
-  const navigate = useNavigate();
-  const { login } = useAuth();
   const { lang } = useLang();
   const t = translations[lang].signup;
 
@@ -25,6 +22,7 @@ const SignUpUser: FunctionComponent<Props> = ({ onClose, onBack }) => {
   const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState("");
 
   const isValidForm =
     firstName.trim().length > 0 && lastName.trim().length > 0 &&
@@ -36,11 +34,8 @@ const SignUpUser: FunctionComponent<Props> = ({ onClose, onBack }) => {
     if (!isValidForm) return;
     setError(""); setLoading(true);
     try {
-      const data = await registerUser({ email, first_name: firstName, last_name: lastName, password, password_confirmation: confirmPassword, phone });
-      const { token, ...user } = data;
-      login(token, user as User);
-      onClose();
-      navigate("/dashboard");
+      await registerUser({ email, first_name: firstName, last_name: lastName, password, password_confirmation: confirmPassword, phone });
+      setRegisteredEmail(email);
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
@@ -60,6 +55,10 @@ const SignUpUser: FunctionComponent<Props> = ({ onClose, onBack }) => {
       <circle cx="12" cy="12" r="3"/>
     </svg>
   );
+
+  if (registeredEmail) {
+    return <ConfirmEmail email={registeredEmail} onClose={onClose} />;
+  }
 
   return (
     <div className={styles.container} style={{ height: "auto", maxHeight: "90vh" }}>

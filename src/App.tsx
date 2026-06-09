@@ -11,6 +11,7 @@ import AgencyDashboard from "./pages/AgencyDashboard";
 import DeveloperDashboard from "./pages/DeveloperDashboard";
 import RegisterByInvite from "./pages/RegisterByInvite";
 import ResetPassword from "./pages/ResetPassword";
+import ConfirmEmail from "./pages/ConfirmEmail";
 import type { ReactNode } from "react";
 
 // ── Role-guard: allowed only for the specified role names ────────────────────
@@ -78,6 +79,9 @@ function AppRoutes() {
 
       {/* Invite registration */}
       <Route path="/register/:token" element={<RegisterByInvite />} />
+
+      {/* Email confirmation via email link */}
+      <Route path="/confirm/:token" element={<ConfirmEmail />} />
 
       {/* Password reset via email link */}
       <Route path="/reset-password/:token" element={<ResetPassword />} />

@@ -89,6 +89,16 @@ export async function registerCompany(payload: RegisterCompanyPayload): Promise<
   return res.data.data;
 }
 
+/** PUT /users/activate/:token — confirm email by activation token */
+export async function activateUser(token: string): Promise<void> {
+  await api.put(`/users/activate/${encodeURIComponent(token)}`);
+}
+
+/** POST /authentication/resend-activation — resend confirmation email */
+export async function resendActivation(email: string): Promise<void> {
+  await api.post('/authentication/resend-activation', { email });
+}
+
 /** POST /authentication/password-reset/request — send reset code to email */
 export async function requestPasswordReset(email: string): Promise<void> {
   await api.post('/authentication/password-reset/request', { email });

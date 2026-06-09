@@ -2,15 +2,14 @@ import { useState, type FunctionComponent } from "react";
 import { useNavigate } from "react-router-dom";
 import styles from "../css/SignUp.module.css";
 import { registerCompany, getErrorMessage } from "../api/auth";
-import { useAuth, type User } from "../context/AuthContext";
 import { useLang } from "../context/LanguageContext";
 import { translations } from "../i18n/translations";
+import ConfirmEmail from "./ConfirmEmail";
 
 type Props = { role?: "agency" | "developer"; onClose: () => void; onBack: () => void };
 
 const SignUpCompany: FunctionComponent<Props> = ({ role = "agency", onClose, onBack }) => {
   const navigate = useNavigate();
-  const { login } = useAuth();
   const { lang } = useLang();
   const t = translations[lang].signup;
 
@@ -41,9 +40,7 @@ const SignUpCompany: FunctionComponent<Props> = ({ role = "agency", onClose, onB
     if (!isValidForm) return;
     setError(""); setLoading(true);
     try {
-      const data = await registerCompany({ city, company_email: email, company_name: companyName, company_phone: phone, company_type: role, first_name: firstName, job_title: position, last_name: lastName, password, password_confirmation: confirmPassword, registration_number: bin });
-      const { token, ...user } = data;
-      login(token, user as User);
+      await registerCompany({ city, company_email: email, company_name: companyName, company_phone: phone, company_type: role, first_name: firstName, job_title: position, last_name: lastName, password, password_confirmation: confirmPassword, registration_number: bin });
       setSubmitted(true);
     } catch (err) {
       setError(getErrorMessage(err));
@@ -82,6 +79,9 @@ const SignUpCompany: FunctionComponent<Props> = ({ role = "agency", onClose, onB
           <div style={{ fontSize: 18, fontWeight: 600, color: "#1a1a2e" }}>{t.awaitVerification}</div>
           <div style={{ fontSize: 14, color: "#595959", lineHeight: 1.6, maxWidth: 340, whiteSpace: "pre-line" }}>
             {t.verificationDesc(companyName)}
+          </div>
+          <div style={{ width: "100%", maxWidth: 440 }}>
+            <ConfirmEmail email={email} embedded />
           </div>
           <div style={{ padding: "12px 20px", background: "#fffbe6", borderRadius: 8, border: "1px solid #ffe58f", fontSize: 13, color: "#7c4a00", textAlign: "left", width: "100%", maxWidth: 340 }}>
             {t.verificationNote}

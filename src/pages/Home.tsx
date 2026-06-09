@@ -113,6 +113,13 @@ const Home: FunctionComponent = () => {
   useReveal();
 
   useEffect(() => {
+    const token = new URLSearchParams(window.location.search).get("token");
+    if (token) {
+      navigate(`/confirm/${encodeURIComponent(token)}`, { replace: true });
+    }
+  }, [navigate]);
+
+  useEffect(() => {
     function onClickOutside(e: MouseEvent) {
       if (profileMenuRef.current && !profileMenuRef.current.contains(e.target as Node))
         setShowProfileMenu(false);
