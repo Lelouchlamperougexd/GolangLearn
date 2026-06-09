@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { ThemeProvider } from "./context/ThemeContext";
+import { LanguageProvider } from "./context/LanguageContext";
 import Home from "./pages/Home";
 import Catalog from "./pages/Catalog";
 import PropertyDetails from "./pages/PropertyDetails";
@@ -89,6 +90,7 @@ function AppRoutes() {
 
 function App() {
   return (
+    <LanguageProvider>
     <ThemeProvider>
       <AuthProvider>
         <BrowserRouter>
@@ -96,6 +98,7 @@ function App() {
         </BrowserRouter>
       </AuthProvider>
     </ThemeProvider>
+    </LanguageProvider>
   );
 }
 

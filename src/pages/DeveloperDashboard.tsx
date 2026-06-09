@@ -969,6 +969,7 @@ const DeveloperDashboardContent: FunctionComponent = () => {
   const [obStep, setObStep] = useState(0);
   const [showOnboarding, setShowOnboarding] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [showAddProjectModal, setShowAddProjectModal] = useState(false);
   const [showAddObjectModal, setShowAddObjectModal] = useState(false);
 
@@ -1063,6 +1064,7 @@ const DeveloperDashboardContent: FunctionComponent = () => {
       loadChats();
       loadProjects();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on mount
   }, []);
 
   useEffect(() => {
@@ -1072,6 +1074,7 @@ const DeveloperDashboardContent: FunctionComponent = () => {
     if (activeTab === "objects"      && !listingsLoaded && !listingsLoading) loadListings();
     if (activeTab === "analytics"    && !projectsLoaded && !projectsLoading) loadProjects();
     if (activeTab === "analytics"    && !listingsLoaded && !listingsLoading) loadListings();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- lazy-load only when the tab changes
   }, [activeTab]);
 
   useEffect(() => {
@@ -1432,8 +1435,19 @@ const DeveloperDashboardContent: FunctionComponent = () => {
 
   return (
     <div className={s.layout}>
+      {/* Mobile top bar with hamburger (hidden on desktop) */}
+      <div className={s.mobileBar}>
+        <button className={s.hamburger} onClick={() => setMobileNavOpen(true)} aria-label="Меню">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
+        </button>
+        <span className={s.mobileBarTitle}>Кабинет застройщика</span>
+      </div>
+
+      {/* Drawer backdrop */}
+      {mobileNavOpen && <div className={s.sidebarOverlay} onClick={() => setMobileNavOpen(false)} />}
+
       {/* Sidebar */}
-      <aside className={s.sidebar}>
+      <aside className={`${s.sidebar} ${mobileNavOpen ? s.sidebarOpen : ""}`}>
         <div style={{ padding: "20px 20px 16px", borderBottom: "1px solid #f0f0f0" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
             <img src={logo} alt="Qonys" style={{ height: 32, width: "auto", objectFit: "contain" }} />
@@ -1451,7 +1465,7 @@ const DeveloperDashboardContent: FunctionComponent = () => {
             <div
               key={item.key}
               className={`${s.navItem} ${activeTab === item.key ? s.navItemActive : ""}`}
-              onClick={() => { setActiveTab(item.key); if (item.key !== "messages") setActiveChat(null); }}
+              onClick={() => { setActiveTab(item.key); if (item.key !== "messages") setActiveChat(null); setMobileNavOpen(false); }}
             >
               <img src={item.icon} alt="" style={{ width: 18, opacity: activeTab === item.key ? 1 : 0.5 }} />
               {item.label}
@@ -1626,10 +1640,10 @@ const DeveloperDashboard: FunctionComponent = () => {
   const navigate = useNavigate();
   const { logout, user } = useAuth();
   const [status, setStatus] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(Boolean(user?.company_id));
 
   useEffect(() => {
-    if (!user?.company_id) { setLoading(false); return; }
+    if (!user?.company_id) return;
     adminAPI.getCompanyById(user.company_id)
       .then(company => setStatus(company.verification_status))
       .catch(() => setStatus("verified"))

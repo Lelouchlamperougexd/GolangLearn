@@ -416,3 +416,36 @@
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
   z-index: 999;
 }
+
+/* ─── RESPONSIVE ─────────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  /* Stack the gallery/details column above the contact sidebar. */
+  .mainContent {
+    flex-direction: column;
+    gap: 24px;
+    padding: 24px 16px;
+  }
+
+  .rightColumn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 600px) {
+  .mainContent {
+    padding: 16px 12px;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .mapContainer {
+    height: 240px;
+  }
+
+  .mapSubtitle {
+    margin-left: 0;
+  }
+}

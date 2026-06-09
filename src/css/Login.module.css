@@ -213,3 +213,27 @@
   	color: #737373;
 }
 
+/* ─── RESPONSIVE ─────────────────────────────────────────────────────────── */
+@media (max-width: 560px) {
+  .container {
+    height: auto;
+  }
+
+  /* The Figma export pins inputs to a fixed 436px width — make them fluid. */
+  .emailInput,
+  .passwordInput {
+    width: 100%;
+  }
+
+  .div2,
+  .div6 {
+    width: 100%;
+  }
+
+  /* Re-anchor the password eye toggle to the right edge of the fluid input. */
+  .buttonIcon2 {
+    left: auto;
+    right: 16px;
+  }
+}
+

@@ -1,31 +1,108 @@
 import { useState, useRef, useEffect, type FunctionComponent } from "react";
 import { useNavigate } from "react-router-dom";
-import styles from "../css/HomeResponsive.module.css";
+import s from "../css/HomeResponsive.module.css";
 import Container from "./Login";
 import SignUp from "./SignUp";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
+import { useLang } from "../context/LanguageContext";
+import { translations, type Lang } from "../i18n/translations";
 import videoLogo from "../assets/video-logo.mp4";
 
-function getDashboardRoute(roleName: string): string {
-  if (roleName === "admin" || roleName === "moderator") return "/admin";
-  if (roleName === "agency") return "/agency";
-  if (roleName === "developer") return "/developer";
-  return "/dashboard";
+// ─── Icons ────────────────────────────────────────────────────────────────────
+
+const IconShieldFill = () => (
+  <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+    <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/>
+  </svg>
+);
+
+const IconDocCheck = () => (
+  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z"/>
+    <polyline points="14 2 14 8 20 8"/>
+    <polyline points="9 13 11 15 15 11"/>
+  </svg>
+);
+
+const IconEye = () => (
+  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+    <circle cx="12" cy="12" r="3"/>
+  </svg>
+);
+
+const IconUser = () => (
+  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
+    <circle cx="12" cy="7" r="4"/>
+  </svg>
+);
+
+const IconHome = () => (
+  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+    <polyline points="9 22 9 12 15 12 15 22"/>
+  </svg>
+);
+
+const IconGrid = () => (
+  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="3" width="7" height="7"/>
+    <rect x="14" y="3" width="7" height="7"/>
+    <rect x="14" y="14" width="7" height="7"/>
+    <rect x="3" y="14" width="7" height="7"/>
+  </svg>
+);
+
+const IconCheck = ({ color }: { color: string }) => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 2 }}>
+    <polyline points="20 6 9 17 4 12"/>
+  </svg>
+);
+
+const IconSearch = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="11" cy="11" r="8"/>
+    <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+  </svg>
+);
+
+const IconArrow = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="5" y1="12" x2="19" y2="12"/>
+    <polyline points="12 5 19 12 12 19"/>
+  </svg>
+);
+
+const IconStar = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="#faad14" stroke="none">
+    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+  </svg>
+);
+
+// ─── Scroll reveal ────────────────────────────────────────────────────────────
+
+function useReveal() {
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => entries.forEach((e) => { if (e.isIntersecting) e.target.classList.add(s.revealVisible); }),
+      { threshold: 0.1, rootMargin: "0px 0px -48px 0px" }
+    );
+    document.querySelectorAll(`.${s.reveal}`).forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, []);
 }
 
-function getRoleLabel(roleName: string): string {
-  if (roleName === "admin") return "Администратор";
-  if (roleName === "moderator") return "Модератор";
-  if (roleName === "agency") return "Агентство";
-  if (roleName === "developer") return "Застройщик";
-  return "Личный кабинет";
-}
+// ─── Main component ───────────────────────────────────────────────────────────
 
 const Home: FunctionComponent = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const { lang, setLang } = useLang();
+  const t = translations[lang];
+
   const [showLogin, setShowLogin] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
@@ -33,353 +110,451 @@ const Home: FunctionComponent = () => {
   const [loggingIn, setLoggingIn] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
 
+  useReveal();
+
   useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (profileMenuRef.current && !profileMenuRef.current.contains(e.target as Node)) {
+    function onClickOutside(e: MouseEvent) {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(e.target as Node))
         setShowProfileMenu(false);
-      }
     }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener("mousedown", onClickOutside);
+    return () => document.removeEventListener("mousedown", onClickOutside);
   }, []);
+
+  const getDashboardRoute = (role: string) => {
+    if (role === "admin" || role === "moderator") return "/admin";
+    if (role === "agency") return "/agency";
+    if (role === "developer") return "/developer";
+    return "/dashboard";
+  };
+
+  const getRoleLabel = (role: string) => {
+    const m: Record<string, string> = {
+      admin: t.roleLabels.admin,
+      moderator: t.roleLabels.moderator,
+      agency: t.roleLabels.agency,
+      developer: t.roleLabels.developer,
+    };
+    return m[role] ?? t.roleLabels.user;
+  };
 
   const handleLogout = () => {
     setShowProfileMenu(false);
     setLoggingOut(true);
-    setTimeout(() => {
-      logout();
-      navigate("/");
-      setLoggingOut(false);
-    }, 1800);
+    setTimeout(() => { logout(); navigate("/"); setLoggingOut(false); }, 1800);
   };
 
   const handleLoginSuccess = (roleName: string) => {
     setLoggingIn(true);
     setTimeout(() => {
       setLoggingIn(false);
-      if (roleName === "admin" || roleName === "moderator") navigate("/admin");
-      else if (roleName === "agency") navigate("/agency");
-      else if (roleName === "developer") navigate("/developer");
+      navigate(getDashboardRoute(roleName));
     }, 1800);
   };
 
+  const roleName = user?.role?.name ?? "";
+
+  const roleIcons = [
+    { icon: <IconUser />, color: "#70a0ff", bg: "rgba(112,160,255,0.1)" },
+    { icon: <IconHome />, color: "#52c97a", bg: "rgba(82,201,122,0.1)" },
+    { icon: <IconGrid />, color: "#faad14", bg: "rgba(250,173,20,0.1)" },
+  ];
+
+  const featureColors = ["#70a0ff", "#52c97a", "#faad14", "#a78bfa", "#f97316", "#f5222d"];
+
+  const testimonialPhotos = [
+    "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=120&h=120&q=80",
+    "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&h=120&q=80",
+    "https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=120&h=120&q=80",
+  ];
+  const testimonialNames = ["Айгерим С.", "Данияр К.", "Малика Т."];
+  const testimonialCities = ["Алматы", "Астана", "Шымкент"];
+
+  // ─── RENDER ──────────────────────────────────────────────────────────────────
+
   return (
-    <div className={styles.landingPage}>
+    <div className={s.landingPage}>
+
       {(loggingOut || loggingIn) && (
-        <div style={{
-          position: "fixed", inset: 0, zIndex: 99999,
-          background: "var(--color-bg)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          animation: "fadeIn 0.2s ease",
-        }}>
-          <style>{`@keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }`}</style>
-          <video
-            src={videoLogo}
-            autoPlay
-            muted
-            playsInline
-            style={{ width: 320, height: 320, objectFit: "contain" }}
-          />
+        <div style={{ position: "fixed", inset: 0, zIndex: 99999, background: "var(--color-bg)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <video src={videoLogo} autoPlay muted playsInline style={{ width: 300, height: 300, objectFit: "contain" }} />
         </div>
       )}
 
-      {/* Header */}
-      <header className={styles.header}>
-        <div className={styles.headerContent}>
-          <div className={styles.logo}>
+      {/* ── HEADER ─────────────────────────────────────────────────────────────── */}
+      <header className={s.header}>
+        <div className={s.headerContent}>
+          <div className={s.logo} onClick={() => navigate("/")}>
             <img src="/assets/logo.png" alt="Qonys" />
           </div>
-          <nav className={styles.navigation}>
-            <a className={`${styles.navLink} ${styles.active}`}>Главная</a>
-            <a className={styles.navLink} onClick={() => navigate('/catalog')} style={{ cursor: 'pointer' }}>Каталог</a>
+
+          <nav className={s.navigation}>
+            <span className={`${s.navLink} ${s.active}`}>{t.nav.home}</span>
+            <span className={s.navLink} onClick={() => navigate("/catalog")}>{t.nav.catalog}</span>
           </nav>
-          <div className={styles.headerActions}>
-            <button className={styles.themeToggle} onClick={toggleTheme} title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}>
-              {theme === 'light' ? '🌙' : '☀️'}
+
+          <div className={s.headerActions}>
+            {/* Language switcher */}
+            <div className={s.langSwitcher}>
+              {(["ru", "kz", "en"] as Lang[]).map(l => (
+                <button
+                  key={l}
+                  className={`${s.langBtn} ${lang === l ? s.langBtnActive : ""}`}
+                  onClick={() => setLang(l)}
+                >
+                  {l.toUpperCase()}
+                </button>
+              ))}
+            </div>
+
+            <button className={s.themeToggle} onClick={toggleTheme} title="Theme">
+              {theme === "light" ? (
+                <img src="https://cdn-icons-png.flaticon.com/512/581/581601.png" width={20} height={20} alt="dark mode" style={{ display: "block" }} />
+              ) : (
+                <img src="https://cdn-icons-png.flaticon.com/512/869/869869.png" width={20} height={20} alt="light mode" style={{ display: "block" }} />
+              )}
             </button>
 
             {user ? (
               <>
-                {user.role?.name === "agency" && (
-                  <button className={`${styles.btn} ${styles.btnPrimary}`} onClick={() => navigate("/agency")}>
-                    Создать объявление
-                  </button>
-                )}
-                {user.role?.name === "developer" && (
-                  <button className={`${styles.btn} ${styles.btnPrimary}`} onClick={() => navigate("/developer")}>
-                    Создать проект
-                  </button>
-                )}
+                <button className={`${s.btn} ${s.btnPrimary}`} onClick={() => navigate(getDashboardRoute(roleName))}>
+                  {getRoleLabel(roleName)}
+                </button>
                 <div ref={profileMenuRef} style={{ position: "relative" }}>
-                  <button className={`${styles.btn} ${styles.btnPrimary}`} onClick={() => setShowProfileMenu(v => !v)} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <div style={{ width: 28, height: 28, borderRadius: "50%", background: "rgba(255,255,255,0.25)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 13, fontWeight: 700 }}>
-                      {(user.first_name || user.username || "?").charAt(0).toUpperCase()}
-                    </div>
-                    <span style={{ display: 'none' }}>
-                      {user.first_name || user.username}
-                    </span>
+                  <button
+                    style={{ width: 40, height: 40, borderRadius: "50%", background: "var(--color-primary)", border: "none", color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer" }}
+                    onClick={() => setShowProfileMenu(v => !v)}
+                  >
+                    {(user.first_name || user.username || "?").charAt(0).toUpperCase()}
                   </button>
-
                   {showProfileMenu && (
-                    <div style={{ position: "absolute", top: "calc(100% + 8px)", right: 0, background: "var(--color-bg)", borderRadius: 12, boxShadow: "0 8px 32px rgba(0,0,0,0.12)", border: "1px solid var(--color-border)", minWidth: 210, zIndex: 1000, overflow: "hidden" }}>
+                    <div style={{ position: "absolute", top: "calc(100% + 8px)", right: 0, background: "var(--color-bg-card)", borderRadius: 12, boxShadow: "var(--shadow-lg)", border: "1px solid var(--color-border)", minWidth: 220, zIndex: 1000, overflow: "hidden" }}>
                       <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--color-border)" }}>
-                        <div style={{ fontSize: 13, fontWeight: 600 }}>
-                          {user.first_name} {user.last_name}
-                        </div>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: "var(--color-text-primary)" }}>{user.first_name} {user.last_name}</div>
                         <div style={{ fontSize: 12, color: "var(--color-text-secondary)", marginTop: 2 }}>{user.email}</div>
-                        <div style={{ fontSize: 11, color: "var(--color-primary)", marginTop: 2, fontWeight: 500 }}>
-                          {getRoleLabel(user.role?.name ?? "")}
-                        </div>
+                        <div style={{ fontSize: 11, color: "var(--color-primary)", marginTop: 2, fontWeight: 600 }}>{getRoleLabel(roleName)}</div>
                       </div>
-                      <button onClick={() => { setShowProfileMenu(false); navigate(getDashboardRoute(user.role?.name ?? "")); }} style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "12px 16px", background: "none", border: "none", cursor: "pointer", fontSize: 13, fontFamily: "Inter, sans-serif", textAlign: "left", color: "var(--color-text-primary)" }} onMouseEnter={e => (e.currentTarget.style.background = "var(--color-bg-secondary)")} onMouseLeave={e => (e.currentTarget.style.background = "none")}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
-                        </svg>
-                        Личный кабинет
-                      </button>
-                      <button onClick={handleLogout} style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "12px 16px", background: "none", border: "none", cursor: "pointer", fontSize: 13, fontFamily: "Inter, sans-serif", textAlign: "left", color: "#f5222d", borderTop: "1px solid var(--color-border)" }} onMouseEnter={e => (e.currentTarget.style.background = "var(--color-bg-secondary)")} onMouseLeave={e => (e.currentTarget.style.background = "none")}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f5222d" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/>
-                        </svg>
-                        Выйти
-                      </button>
+                      {[
+                        { label: t.profileMenu.cabinet, action: () => { setShowProfileMenu(false); navigate(getDashboardRoute(roleName)); } },
+                        { label: t.profileMenu.catalog, action: () => { setShowProfileMenu(false); navigate("/catalog"); } },
+                      ].map(item => (
+                        <button key={item.label} onClick={item.action}
+                          style={{ display: "block", width: "100%", padding: "11px 16px", background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "var(--color-text-primary)", fontFamily: "Inter, sans-serif", textAlign: "left" }}
+                          onMouseEnter={e => (e.currentTarget.style.background = "var(--color-bg-secondary)")}
+                          onMouseLeave={e => (e.currentTarget.style.background = "none")}
+                        >{item.label}</button>
+                      ))}
+                      <button onClick={handleLogout}
+                        style={{ display: "block", width: "100%", padding: "11px 16px", background: "none", border: "none", borderTop: "1px solid var(--color-border)", cursor: "pointer", fontSize: 13, color: "#f5222d", fontFamily: "Inter, sans-serif", textAlign: "left" }}
+                        onMouseEnter={e => (e.currentTarget.style.background = "rgba(245,34,45,0.04)")}
+                        onMouseLeave={e => (e.currentTarget.style.background = "none")}
+                      >{t.profileMenu.logout}</button>
                     </div>
                   )}
                 </div>
               </>
             ) : (
               <>
-                <button className={`${styles.btn} ${styles.btnSecondary}`} onClick={() => setShowRegister(true)}>
-                  Зарегистрироваться
-                </button>
-                <button className={`${styles.btn} ${styles.btnPrimary}`} onClick={() => setShowLogin(true)}>
-                  Войти
-                </button>
+                <button className={`${s.btn} ${s.btnSecondary}`} onClick={() => setShowRegister(true)}>{t.nav.register}</button>
+                <button className={`${s.btn} ${s.btnPrimary}`} onClick={() => setShowLogin(true)}>{t.nav.login}</button>
               </>
             )}
           </div>
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section className={`${styles.section} ${styles.sectionAlt}`}>
-        <div className={styles.sectionContainer}>
-          <div className={styles.sectionHeader}>
-            <h1 className={styles.sectionTitle}>Как работает платформа</h1>
-            <p className={styles.sectionSubtitle}>Четыре этапа работы с объектами недвижимости</p>
-          </div>
-          <div className={styles.featuresGrid}>
-            {[
-              { num: "01", title: "Поиск объектов на карте", desc: "Фильтрация по городу, району и параметрам." },
-              { num: "02", title: "Просмотр проверенных объявлений", desc: "Модерация и верификация всех объявлений." },
-              { num: "03", title: "Связь с агентством", desc: "Встроенный чат для прямого общения." },
-              { num: "04", title: "Бронирование объекта", desc: "Отправка заявки без онлайн-оплаты." },
-            ].map(feature => (
-              <div key={feature.num} className={styles.featureCard}>
-                <div className={styles.featureNumber}>{feature.num}</div>
-                <h3 className={styles.featureTitle}>{feature.title}</h3>
-                <p className={styles.featureDesc}>{feature.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Roles Section */}
-      <section className={styles.section}>
-        <div className={styles.sectionContainer}>
-          <div className={styles.sectionHeader}>
-            <h2 className={styles.sectionTitle}>Платформа для разных ролей</h2>
-            <p className={styles.sectionSubtitle}>Функциональность для покупателей, агентств и застройщиков</p>
-          </div>
-          <div className={styles.rolesGrid}>
-            {[
-              { title: "Покупателям", img: "/assets/source/image.jpg", icon: "/assets/Icon-17.svg", items: ["Проверенные объявления", "Карта и фильтры", "Прямая связь с агентствами"] },
-              { title: "Агентствам", img: "/assets/Image (Агентствам).png", icon: "/assets/Icon-15.svg", items: ["Личный кабинет", "Управление объявлениями", "Заявки и чаты"] },
-              { title: "Застройщикам", img: "/assets/Image (Застройщикам).png", icon: "/assets/Icon-14.svg", items: ["Размещение новостроек", "Управление проектами", "Аналитика просмотров"] },
-            ].map(role => (
-              <div key={role.title} className={styles.roleCard}>
-                <img src={role.img} alt={role.title} className={styles.roleCardImage} />
-                <div className={styles.roleCardContent}>
-                  <div className={styles.roleCardHeader}>
-                    <img src={role.icon} alt="" className={styles.roleCardIcon} />
-                    <h3 className={styles.roleCardTitle}>{role.title}</h3>
-                  </div>
-                  <ul className={styles.roleCardList}>
-                    {role.items.map((item, i) => (
-                      <li key={i} className={styles.roleCardListItem}>
-                        <img src="/assets/Icon-16.svg" alt="" className={styles.roleCardListIcon} />
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                  <button className={styles.roleCardBtn}>Подробнее</button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Security Section */}
-      <section className={`${styles.section} ${styles.sectionAlt}`}>
-        <div className={styles.sectionContainer}>
-          <div className={styles.sectionHeader}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', justifyContent: 'center', marginBottom: '1rem' }}>
-              <img src="/assets/Icon-13.svg" alt="" style={{ width: 24, height: 24 }} />
-              <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>Система контроля</span>
-            </div>
-            <h2 className={styles.sectionTitle}>Безопасность и контроль качества</h2>
-            <p className={styles.sectionSubtitle}>Верификация агентств, модерация объявлений и защищённая коммуникация.</p>
+      {/* ── HERO ───────────────────────────────────────────────────────────────── */}
+      <section className={s.hero}>
+        <div className={s.heroText}>
+          <div className={s.heroBadge}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="6"/></svg>
+            {t.hero.badge}
           </div>
 
-          <div className={styles.securityContainer}>
-            <div className={styles.securityFeatures}>
-              {[
-                { icon: "/assets/Icon-12.svg", title: "Верификация объявлений", badge: "Проверено", desc: "Проверка данных агентств и документов." },
-                { icon: "/assets/Icon-11.svg", title: "Модерация контента", badge: "Контроль качества", desc: "Ручная проверка всех объявлений." },
-                { icon: "/assets/Icon-10.svg", title: "Безопасная коммуникация", badge: "Защищено", desc: "Встроенный чат без передачи личных данных." },
-              ].map(item => (
-                <div key={item.title} style={{ display: 'flex', gap: '1.5rem' }}>
-                  <img src={item.icon} alt="" style={{ width: 48, height: 48, flexShrink: 0, objectFit: 'contain' }} />
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                      <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600, color: 'var(--color-text-primary)' }}>{item.title}</h4>
-                      <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-primary)', background: 'rgba(112, 160, 255, 0.1)', padding: '0.25rem 0.5rem', borderRadius: '0.25rem' }}>{item.badge}</span>
-                    </div>
-                    <p style={{ margin: 0, color: 'var(--color-text-secondary)', fontSize: '0.95rem', lineHeight: 1.6 }}>{item.desc}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
+          <h1 className={s.heroTitle}>
+            {t.hero.line1}<br />
+            <span className={s.heroAccent}>{t.hero.line2}</span><br />
+            {t.hero.line3}
+          </h1>
 
-            <div className={styles.statsGrid} style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))' }}>
-              {[
-                { num: "~10K", label: "Объектов" },
-                { num: "~500", label: "Агентств" },
-                { num: "~50K", label: "Пользователей" },
-              ].map(stat => (
-                <div key={stat.label} className={styles.statBox}>
-                  <div className={styles.statNumber}>{stat.num}</div>
-                  <div className={styles.statLabel}>{stat.label}</div>
-                </div>
-              ))}
-            </div>
+          <p className={s.heroSubtitle}>{t.hero.subtitle}</p>
+
+          <div className={s.heroTrustRow}>
+            <span className={s.heroTrustChip}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
+              {t.hero.trust1}
+            </span>
+            <span className={s.heroTrustChip}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              {t.hero.trust2}
+            </span>
+            <span className={s.heroTrustChip}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+              {t.hero.trust3}
+            </span>
           </div>
 
-          <div style={{ marginTop: '2rem', display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'center' }}>
-            <button className={`${styles.btn} ${styles.btnPrimary}`} onClick={() => navigate('/catalog')} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <img src="/assets/Icon-21.svg" alt="" style={{ width: 20, height: 20 }} />
-              Найти объект
+          <div className={s.heroActions}>
+            <button className={`${s.btn} ${s.btnPrimary} ${s.btnLarge}`} onClick={() => navigate("/catalog")}>
+              <IconSearch /> {t.hero.catalogBtn}
             </button>
-            <button className={`${styles.btn} ${styles.btnSecondary}`}>
-              Зарегистрировать агентство
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {/* Quick Search Section */}
-      <section className={styles.section}>
-        <div className={styles.sectionContainer}>
-          <h2 className={styles.sectionTitle} style={{ textAlign: 'left', marginBottom: '1.5rem' }}>Быстрый поиск объектов</h2>
-          <div className={styles.searchSection}>
-            <form className={styles.searchForm}>
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Город</label>
-                <input type="text" placeholder="Выберите город" className={styles.formInput} />
-              </div>
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Тип недвижимости</label>
-                <input type="text" placeholder="Квартира" className={styles.formInput} />
-              </div>
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Цена от</label>
-                <input type="number" placeholder="0" className={styles.formInput} />
-              </div>
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Цена до</label>
-                <input type="number" placeholder="∞" className={styles.formInput} />
-              </div>
-              <button type="button" className={styles.searchBtn}>
-                <img src="/assets/Icon-21.svg" alt="" style={{ width: 16, height: 16 }} />
-                Поиск
+            {user ? (
+              <button className={`${s.btn} ${s.btnSecondary} ${s.btnLarge}`} onClick={() => navigate(getDashboardRoute(roleName))}>
+                {t.hero.cabinetBtn} <IconArrow />
               </button>
-            </form>
+            ) : (
+              <button className={`${s.btn} ${s.btnSecondary} ${s.btnLarge}`} onClick={() => setShowLogin(true)}>
+                {t.hero.loginBtn}
+              </button>
+            )}
+          </div>
+
+          <div className={s.heroStats}>
+            {[
+              { v: t.hero.stat1v, l: t.hero.stat1l },
+              { v: t.hero.stat2v, l: t.hero.stat2l },
+              { v: t.hero.stat3v, l: t.hero.stat3l },
+            ].map(stat => (
+              <div key={stat.l} className={s.heroStat}>
+                <div className={s.heroStatValue}>{stat.v}</div>
+                <div className={s.heroStatLabel}>{stat.l}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className={s.heroVisual}>
+          <div className={s.heroCard}>
+            <div className={s.heroCardMapArea}>
+              <img
+                src="https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=500&q=80"
+                alt="apartment"
+                className={s.heroCardPhoto}
+              />
+            </div>
+            <div className={s.heroCardBody}>
+              <div className={s.heroCardPrice}>85 000 000 ₸</div>
+              <div className={s.heroCardTitle}>{t.hero.cardTitle}</div>
+              <div className={s.heroCardAddr}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                {t.hero.cardAddr}
+              </div>
+              <div className={s.heroCardTags}>
+                <span className={s.heroCardTag}>{t.hero.cardTag1}</span>
+                <span className={s.heroCardTag}>{t.hero.cardTag2}</span>
+                <span className={s.heroCardTag}>{t.hero.cardTag3}</span>
+              </div>
+            </div>
+          </div>
+          <div className={`${s.heroFloat} ${s.heroFloat1}`}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#52c97a" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            {t.hero.float1}
+          </div>
+          <div className={`${s.heroFloat} ${s.heroFloat2}`}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#70a0ff" strokeWidth="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+            {t.hero.float2}
           </div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className={styles.footer}>
-        <div className={styles.sectionContainer}>
-          <div className={styles.footerContent}>
-            <div className={styles.footerSection}>
-              <h4>Qonys</h4>
-              <p>Платформа для поиска проверенных объектов недвижимости. Соединяем покупателей, агентства и застройщиков.</p>
-              <div style={{ display: 'flex', gap: '1rem' }}>
-                <img src="/assets/Icon-6.svg" alt="" style={{ width: 20, height: 20, cursor: 'pointer', opacity: 0.8 }} />
-                <img src="/assets/Icon-5.svg" alt="" style={{ width: 20, height: 20, cursor: 'pointer', opacity: 0.8 }} />
-                <img src="/assets/Icon-4.svg" alt="" style={{ width: 20, height: 20, cursor: 'pointer', opacity: 0.8 }} />
-              </div>
-            </div>
-            <div className={styles.footerSection}>
-              <h4>О платформе</h4>
-              <ul className={styles.footerLinks}>
-                <a href="#">О нас</a>
-                <a href="#">Как это работает</a>
-                <a href="#">Тарифы</a>
-                <a href="#">Блог</a>
-              </ul>
-            </div>
-            <div className={styles.footerSection}>
-              <h4>Пользователям</h4>
-              <ul className={styles.footerLinks}>
-                <a href="#">Поиск объектов</a>
-                <a href="#">Агентствам</a>
-                <a href="#">Застройщикам</a>
-                <a href="#">Помощь</a>
-              </ul>
-            </div>
-            <div className={styles.footerSection}>
-              <h4>Контакты</h4>
-              <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '0.75rem' }}>
-                <img src="/assets/Icon-3.svg" alt="" style={{ width: 16, height: 16, flexShrink: 0 }} />
-                <span>г. Алматы, ул. Примерная, 123</span>
-              </div>
-              <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '0.75rem' }}>
-                <img src="/assets/Icon-2.svg" alt="" style={{ width: 16, height: 16, flexShrink: 0 }} />
-                <span>+7 700 000 00 00</span>
-              </div>
-              <div style={{ display: 'flex', gap: '0.75rem' }}>
-                <img src="/assets/Icon-1.svg" alt="" style={{ width: 16, height: 16, flexShrink: 0 }} />
-                <span>info@platform.kz</span>
-              </div>
-            </div>
+      {/* ── SECURITY ───────────────────────────────────────────────────────────── */}
+      <section className={s.trustSection}>
+        <div className={s.trustInner}>
+          <div className={`${s.trustHead} ${s.reveal}`}>
+            <div className={s.trustBadge}><IconShieldFill />{t.trust.badge}</div>
+            <h2 className={s.trustTitle}>{t.trust.title1}<br />{t.trust.title2}</h2>
+            <p className={s.trustSubtitle}>{t.trust.subtitle}</p>
           </div>
+          <div className={s.trustGrid}>
+            {[
+              { icon: <IconShieldFill />, title: t.trust.p1t, desc: t.trust.p1d },
+              { icon: <IconDocCheck />, title: t.trust.p2t, desc: t.trust.p2d },
+              { icon: <IconEye />, title: t.trust.p3t, desc: t.trust.p3d },
+            ].map((p, i) => (
+              <div key={i} className={`${s.trustPillar} ${s.reveal}`} style={{ transitionDelay: `${i * 100}ms` }}>
+                <div className={s.trustPillarIcon}>{p.icon}</div>
+                <h3 className={s.trustPillarTitle}>{p.title}</h3>
+                <p className={s.trustPillarDesc}>{p.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
-          <div className={styles.footerBottom}>
-            <p className={styles.footerBottomText}>© 2026 Qonys. Все права защищены.</p>
-            <div className={styles.footerBottomLinks}>
-              <a href="#">Политика конфиденциальности</a>
-              <a href="#">Условия использования</a>
-              <a href="#">Cookie</a>
-            </div>
+      {/* ── FEATURES ───────────────────────────────────────────────────────────── */}
+      <section className={`${s.section} ${s.sectionAlt}`}>
+        <div className={s.sectionInner}>
+          <div className={`${s.sectionHead} ${s.reveal}`}>
+            <div className={s.sectionBadge}>{t.features.badge}</div>
+            <h2 className={s.sectionTitle}>{t.features.title}</h2>
+            <p className={s.sectionSubtitle}>{t.features.subtitle}</p>
           </div>
+          <div className={s.featuresGrid}>
+            {t.features.items.map((f, i) => (
+              <div key={i} className={`${s.featureCard} ${s.reveal}`} style={{ transitionDelay: `${i * 70}ms` }}>
+                <div className={s.featureNum} style={{ color: featureColors[i] }}>
+                  {String(i + 1).padStart(2, "0")}
+                </div>
+                <h3 className={s.featureTitle}>{f.title}</h3>
+                <p className={s.featureDesc}>{f.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── HOW IT WORKS ───────────────────────────────────────────────────────── */}
+      <section className={s.section}>
+        <div className={s.sectionInner}>
+          <div className={`${s.sectionHead} ${s.reveal}`}>
+            <div className={s.sectionBadge}>{t.steps.badge}</div>
+            <h2 className={s.sectionTitle}>{t.steps.title}</h2>
+            <p className={s.sectionSubtitle}>{t.steps.subtitle}</p>
+          </div>
+          <div className={s.stepsGrid}>
+            {t.steps.items.map((step, i) => (
+              <div key={i} className={`${s.stepCard} ${s.reveal}`} style={{ transitionDelay: `${i * 100}ms` }}>
+                <div className={s.stepCircle}>
+                  <span className={s.stepNumLarge}>{i + 1}</span>
+                </div>
+                <div>
+                  <h3 className={s.stepTitle}>{step.title}</h3>
+                  <p className={s.stepDesc}>{step.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── TESTIMONIALS ───────────────────────────────────────────────────────── */}
+      <section className={`${s.section} ${s.sectionAlt}`}>
+        <div className={s.sectionInner}>
+          <div className={`${s.sectionHead} ${s.reveal}`}>
+            <div className={s.sectionBadge}>{t.testimonials.badge}</div>
+            <h2 className={s.sectionTitle}>{t.testimonials.title}</h2>
+            <p className={s.sectionSubtitle}>{t.testimonials.subtitle}</p>
+          </div>
+          <div className={s.testimonialsGrid}>
+            {t.testimonials.items.map((text, i) => (
+              <div key={i} className={`${s.testimonialCard} ${s.reveal}`} style={{ transitionDelay: `${i * 80}ms` }}>
+                <div className={s.testimonialStars}>
+                  {Array.from({ length: 5 }).map((_, j) => <IconStar key={j} />)}
+                </div>
+                <p className={s.testimonialText}>"{text}"</p>
+                <div className={s.testimonialAuthor}>
+                  <img src={testimonialPhotos[i]} alt={testimonialNames[i]} className={s.testimonialAvatar} />
+                  <div>
+                    <div className={s.testimonialName}>{testimonialNames[i]}</div>
+                    <div className={s.testimonialCity}>{testimonialCities[i]}</div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── ROLES ──────────────────────────────────────────────────────────────── */}
+      <section className={s.section}>
+        <div className={s.sectionInner}>
+          <div className={`${s.sectionHead} ${s.reveal}`}>
+            <div className={s.sectionBadge}>{t.roles.badge}</div>
+            <h2 className={s.sectionTitle}>{t.roles.title}</h2>
+            <p className={s.sectionSubtitle}>{t.roles.subtitle}</p>
+          </div>
+          <div className={s.rolesGrid}>
+            {t.roles.items.map((role, i) => (
+              <div key={i} className={`${s.roleCard} ${s.reveal}`} style={{ transitionDelay: `${i * 80}ms`, borderTop: `3px solid ${roleIcons[i].color}` }}>
+                <div className={s.roleTop}>
+                  <div className={s.roleIconWrap} style={{ background: roleIcons[i].bg, color: roleIcons[i].color }}>{roleIcons[i].icon}</div>
+                  <div className={s.roleMeta}>
+                    <div className={s.roleTag} style={{ color: roleIcons[i].color }}>{role.tag}</div>
+                    <h3 className={s.roleTitle}>{role.title}</h3>
+                  </div>
+                </div>
+                <ul className={s.roleList}>
+                  {role.items.map((item, j) => (
+                    <li key={j} className={s.roleItem}><IconCheck color={roleIcons[i].color} />{item}</li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── CTA ────────────────────────────────────────────────────────────────── */}
+      <section className={s.ctaSection}>
+        <div className={`${s.ctaInner} ${s.reveal}`}>
+          <div className={s.ctaBadge}>{t.cta.badge}</div>
+          <h2 className={s.ctaTitle}>{t.cta.title}</h2>
+          <p className={s.ctaSubtitle}>{t.cta.subtitle}</p>
+          <div className={s.ctaActions}>
+            <button className={s.ctaBtnPrimary} onClick={() => navigate("/catalog")}>
+              <IconSearch /> {t.cta.catalogBtn}
+            </button>
+            {!user && (
+              <button className={s.ctaBtnSecondary} onClick={() => setShowLogin(true)}>
+                {t.cta.loginBtn} <IconArrow />
+              </button>
+            )}
+            {user && (
+              <button className={s.ctaBtnSecondary} onClick={() => navigate(getDashboardRoute(roleName))}>
+                {t.cta.cabinetBtn} <IconArrow />
+              </button>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* ── FOOTER ─────────────────────────────────────────────────────────────── */}
+      <footer className={s.footer}>
+        <div className={s.footerInner}>
+          <div className={s.footerBrand}>
+            <img src="/assets/logo.png" alt="Qonys" />
+            <p className={s.footerBrandText}>{t.footer.brand}</p>
+          </div>
+          <div className={s.footerCol}>
+            <div className={s.footerColTitle}>{t.footer.catalogTitle}</div>
+            <span className={s.footerLink} onClick={() => navigate("/catalog")}>{t.footer.catalogAll}</span>
+            <span className={s.footerLink} onClick={() => navigate("/catalog")}>{t.footer.catalogRent}</span>
+            <span className={s.footerLink} onClick={() => navigate("/catalog")}>{t.footer.catalogSale}</span>
+          </div>
+          <div className={s.footerCol}>
+            <div className={s.footerColTitle}>{t.footer.bizTitle}</div>
+            <span className={s.footerLink} style={{ opacity: 0.5, cursor: "default" }}>{t.footer.bizAgency}</span>
+            <span className={s.footerLink} style={{ opacity: 0.5, cursor: "default" }}>{t.footer.bizDev}</span>
+          </div>
+          <div className={s.footerCol}>
+            <div className={s.footerColTitle}>{t.footer.accountTitle}</div>
+            {user ? (
+              <span className={s.footerLink} onClick={() => navigate(getDashboardRoute(roleName))}>{t.footer.accountCabinet}</span>
+            ) : (
+              <>
+                <span className={s.footerLink} onClick={() => setShowLogin(true)}>{t.footer.accountLogin}</span>
+                <span className={s.footerLink} onClick={() => setShowRegister(true)}>{t.footer.accountRegister}</span>
+              </>
+            )}
+          </div>
+        </div>
+        <div className={s.footerBottom}>
+          <span>{t.footer.copyright}</span>
+          <span>{t.footer.country}</span>
         </div>
       </footer>
 
-      {/* Modals */}
+      {/* ── MODALS ─────────────────────────────────────────────────────────────── */}
       {showLogin && (
-        <div className={styles.modalOverlay}>
-          <div className={styles.modalContent}>
+        <div className={s.modalOverlay} onClick={() => setShowLogin(false)}>
+          <div className={`${s.modalContent} ${s.modalContentNarrow}`} onClick={e => e.stopPropagation()}>
             <Container onClose={() => setShowLogin(false)} onLoginSuccess={handleLoginSuccess} />
           </div>
         </div>
       )}
       {showRegister && (
-        <div className={styles.modalOverlay}>
-          <div className={styles.modalContent}>
+        <div className={s.modalOverlay} onClick={() => setShowRegister(false)}>
+          <div className={s.modalContent} onClick={e => e.stopPropagation()}>
             <SignUp onClose={() => setShowRegister(false)} />
           </div>
         </div>

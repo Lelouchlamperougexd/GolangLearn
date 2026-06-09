@@ -1145,6 +1145,7 @@ const AgencyDashboardContent: FunctionComponent = () => {
   const [obStep, setObStep] = useState(0);
   const [showOnboarding, setShowOnboarding] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingListing, setEditingListing] = useState<CompanyListing | null>(null);
 
@@ -1279,6 +1280,7 @@ const AgencyDashboardContent: FunctionComponent = () => {
       loadApplications();
       loadChats();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on mount
   }, []);
 
   // Lazy-load per tab
@@ -1286,6 +1288,7 @@ const AgencyDashboardContent: FunctionComponent = () => {
     if (activeTab === "applications" && !appsLoaded && !appsLoading) loadApplications();
     if (activeTab === "listings"     && !listingsLoaded && !listingsLoading) loadListings();
     if (activeTab === "messages"     && !chatsLoaded && !chatsLoading) loadChats();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- lazy-load only when the tab changes
   }, [activeTab]);
 
   useEffect(() => {
@@ -1480,8 +1483,19 @@ const AgencyDashboardContent: FunctionComponent = () => {
 
   return (
     <div className={s.layout}>
+      {/* Mobile top bar with hamburger (hidden on desktop) */}
+      <div className={s.mobileBar}>
+        <button className={s.hamburger} onClick={() => setMobileNavOpen(true)} aria-label="Меню">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
+        </button>
+        <span className={s.mobileBarTitle}>Кабинет агентства</span>
+      </div>
+
+      {/* Drawer backdrop */}
+      {mobileNavOpen && <div className={s.sidebarOverlay} onClick={() => setMobileNavOpen(false)} />}
+
       {/* Sidebar */}
-      <aside className={s.sidebar}>
+      <aside className={`${s.sidebar} ${mobileNavOpen ? s.sidebarOpen : ""}`}>
         <div style={{ padding: "20px 20px 16px", borderBottom: "1px solid #f0f0f0" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
             <img src={logo} alt="Qonys" style={{ height: 32, width: "auto", objectFit: "contain" }} />
@@ -1498,7 +1512,7 @@ const AgencyDashboardContent: FunctionComponent = () => {
             <div
               key={item.key}
               className={`${s.navItem} ${activeTab === item.key ? s.navItemActive : ""}`}
-              onClick={() => { setActiveTab(item.key); if (item.key !== "messages") setActiveChat(null); }}
+              onClick={() => { setActiveTab(item.key); if (item.key !== "messages") setActiveChat(null); setMobileNavOpen(false); }}
             >
               <img src={item.icon} alt="" style={{ width: 18, opacity: activeTab === item.key ? 1 : 0.5 }} />
               {item.label}
@@ -1847,10 +1861,10 @@ const AgencyDashboard: FunctionComponent = () => {
   const navigate = useNavigate();
   const { logout, user } = useAuth();
   const [status, setStatus] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(Boolean(user?.company_id));
 
   useEffect(() => {
-    if (!user?.company_id) { setLoading(false); return; }
+    if (!user?.company_id) return;
     adminAPI.getCompanyById(user.company_id)
       .then(company => setStatus(company.verification_status))
       .catch(() => setStatus("verified"))

@@ -286,6 +286,7 @@ const Dashboard: FunctionComponent = () => {
   const navigate = useNavigate();
   const { logout, login, user, token } = useAuth();
   const [activeTab, setActiveTab] = useState<TabId>("overview");
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   // Data state
   const [overview, setOverview] = useState<DashboardOverview | null>(null);
@@ -377,6 +378,7 @@ const Dashboard: FunctionComponent = () => {
         .catch(e => setChatsError(getErrorMessage(e)))
         .finally(() => setChatsLoading(false));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- load only when the tab changes
   }, [activeTab]);
 
   useEffect(() => {
@@ -884,8 +886,19 @@ const Dashboard: FunctionComponent = () => {
 
   return (
     <div className={styles.dashboardPage}>
+      {/* Mobile top bar with hamburger (hidden on desktop) */}
+      <div className={styles.mobileBar}>
+        <button className={styles.hamburger} onClick={() => setMobileNavOpen(true)} aria-label="Меню">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
+        </button>
+        <span className={styles.mobileBarTitle}>Личный кабинет</span>
+      </div>
+
+      {/* Drawer backdrop */}
+      {mobileNavOpen && <div className={styles.sidebarOverlay} onClick={() => setMobileNavOpen(false)} />}
+
       {/* Sidebar */}
-      <aside className={styles.sidebar}>
+      <aside className={`${styles.sidebar} ${mobileNavOpen ? styles.sidebarOpen : ""}`}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "0 32px", marginBottom: 24 }}>
           <img src={logo} alt="Qonys Logo" style={{ height: 32, objectFit: "contain" }} />
           <span style={{ fontSize: 16, fontWeight: 700, color: "#1a1a2e", letterSpacing: "-0.3px" }}>Qonys</span>
@@ -905,7 +918,7 @@ const Dashboard: FunctionComponent = () => {
             <div
               key={item.id}
               className={`${styles.navItem} ${activeTab === item.id ? styles.navItemActive : ""}`}
-              onClick={() => { setActiveTab(item.id); if (item.id === "messages") setActiveChat(null); }}
+              onClick={() => { setActiveTab(item.id); if (item.id === "messages") setActiveChat(null); setMobileNavOpen(false); }}
             >
               <img src={item.icon} alt="" style={{ width: 18, opacity: activeTab === item.id ? 1 : 0.5 }} />
               {item.label}
@@ -918,7 +931,7 @@ const Dashboard: FunctionComponent = () => {
           ))}
           <div
             className={`${styles.navItem} ${activeTab === "settings" ? styles.navItemActive : ""}`}
-            onClick={() => setActiveTab("settings")}
+            onClick={() => { setActiveTab("settings"); setMobileNavOpen(false); }}
             style={{ marginTop: 16 }}
           >
             <img src="/assets/settings.svg" alt="" style={{ width: 18, opacity: activeTab === "settings" ? 1 : 0.5 }} />
