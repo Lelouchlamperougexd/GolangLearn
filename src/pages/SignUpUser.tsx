@@ -4,6 +4,8 @@ import { registerUser, getErrorMessage } from "../api/auth";
 import { useLang } from "../context/LanguageContext";
 import { translations } from "../i18n/translations";
 import ConfirmEmail from "./ConfirmEmail";
+import { isStrongPassword } from "../utils/password";
+import PasswordChecklist from "../components/PasswordChecklist";
 
 type Props = { onClose: () => void; onBack: () => void };
 
@@ -27,7 +29,7 @@ const SignUpUser: FunctionComponent<Props> = ({ onClose, onBack }) => {
   const isValidForm =
     firstName.trim().length > 0 && lastName.trim().length > 0 &&
     email.includes("@") && email.includes(".") &&
-    phone.trim().length >= 10 && password.length >= 8 &&
+    phone.trim().length >= 10 && isStrongPassword(password) &&
     password === confirmPassword && agreed;
 
   const handleSubmit = async () => {
@@ -37,7 +39,7 @@ const SignUpUser: FunctionComponent<Props> = ({ onClose, onBack }) => {
       await registerUser({ email, first_name: firstName, last_name: lastName, password, password_confirmation: confirmPassword, phone });
       setRegisteredEmail(email);
     } catch (err) {
-      setError(getErrorMessage(err));
+      setError(getErrorMessage(err, lang));
     } finally {
       setLoading(false);
     }
@@ -115,6 +117,8 @@ const SignUpUser: FunctionComponent<Props> = ({ onClose, onBack }) => {
               </div>
             </div>
           </div>
+
+          {password.length > 0 && <PasswordChecklist password={password} />}
 
           {confirmPassword.length > 0 && password !== confirmPassword && (
             <div style={{ color: "#e53e3e", fontSize: "12px", marginTop: "-8px", marginBottom: "4px" }}>{t.passwordMismatch}</div>

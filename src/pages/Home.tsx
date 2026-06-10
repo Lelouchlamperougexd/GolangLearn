@@ -273,11 +273,6 @@ const Home: FunctionComponent = () => {
       {/* ── HERO ───────────────────────────────────────────────────────────────── */}
       <section className={s.hero}>
         <div className={s.heroText}>
-          <div className={s.heroBadge}>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="6"/></svg>
-            {t.hero.badge}
-          </div>
-
           <h1 className={s.heroTitle}>
             {t.hero.line1}<br />
             <span className={s.heroAccent}>{t.hero.line2}</span><br />
@@ -285,21 +280,6 @@ const Home: FunctionComponent = () => {
           </h1>
 
           <p className={s.heroSubtitle}>{t.hero.subtitle}</p>
-
-          <div className={s.heroTrustRow}>
-            <span className={s.heroTrustChip}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
-              {t.hero.trust1}
-            </span>
-            <span className={s.heroTrustChip}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-              {t.hero.trust2}
-            </span>
-            <span className={s.heroTrustChip}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
-              {t.hero.trust3}
-            </span>
-          </div>
 
           <div className={s.heroActions}>
             <button className={`${s.btn} ${s.btnPrimary} ${s.btnLarge}`} onClick={() => navigate("/catalog")}>
@@ -353,13 +333,29 @@ const Home: FunctionComponent = () => {
               </div>
             </div>
           </div>
-          <div className={`${s.heroFloat} ${s.heroFloat1}`}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#52c97a" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-            {t.hero.float1}
+
+          {/* Secondary mini listing cards at opposite corners so they don't cover the main card */}
+          <div className={`${s.heroMiniCard} ${s.heroMiniTopRight}`}>
+            <img
+              src="https://images.unsplash.com/photo-1493809842364-78817add7ffb?auto=format&fit=crop&w=160&q=80"
+              alt=""
+              className={s.heroMiniPhoto}
+            />
+            <div className={s.heroMiniBody}>
+              <div className={s.heroMiniPrice}>32 500 000 ₸</div>
+              <div className={s.heroMiniTitle}>{t.hero.cardTag2} · {t.hero.cardTag1}</div>
+            </div>
           </div>
-          <div className={`${s.heroFloat} ${s.heroFloat2}`}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#70a0ff" strokeWidth="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-            {t.hero.float2}
+          <div className={`${s.heroMiniCard} ${s.heroMiniBottomLeft}`}>
+            <img
+              src="https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=160&q=80"
+              alt=""
+              className={s.heroMiniPhoto}
+            />
+            <div className={s.heroMiniBody}>
+              <div className={s.heroMiniPrice}>18 900 000 ₸</div>
+              <div className={s.heroMiniTitle}>{t.hero.cardTag2} · {t.hero.cardTag3}</div>
+            </div>
           </div>
         </div>
       </section>
@@ -527,11 +523,6 @@ const Home: FunctionComponent = () => {
             <span className={s.footerLink} onClick={() => navigate("/catalog")}>{t.footer.catalogAll}</span>
             <span className={s.footerLink} onClick={() => navigate("/catalog")}>{t.footer.catalogRent}</span>
             <span className={s.footerLink} onClick={() => navigate("/catalog")}>{t.footer.catalogSale}</span>
-          </div>
-          <div className={s.footerCol}>
-            <div className={s.footerColTitle}>{t.footer.bizTitle}</div>
-            <span className={s.footerLink} style={{ opacity: 0.5, cursor: "default" }}>{t.footer.bizAgency}</span>
-            <span className={s.footerLink} style={{ opacity: 0.5, cursor: "default" }}>{t.footer.bizDev}</span>
           </div>
           <div className={s.footerCol}>
             <div className={s.footerColTitle}>{t.footer.accountTitle}</div>

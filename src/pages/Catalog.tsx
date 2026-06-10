@@ -134,6 +134,7 @@ const Catalog: FunctionComponent = () => {
   const [priceMax, setPriceMax] = useState("");
   const [rooms, setRooms] = useState("");
   const [radius, setRadius] = useState(5);
+  const [viewMode, setViewMode] = useState<"map" | "list">("map");
 
   // Results
   const [listings, setListings] = useState<CatalogListing[]>([]);
@@ -202,6 +203,35 @@ const Catalog: FunctionComponent = () => {
     .map(listingToProperty)
     .filter((p): p is Property => p !== null);
 
+  const renderListingCard = (item: CatalogListing) => {
+    const imageUrl = item.media?.[0]?.url || "https://placehold.co/600x400?text=Нет+фото";
+    const propertyLabel = PROPERTY_TYPE_LABELS[item.property_type] ?? item.property_type;
+    const dealLabel = DEAL_TYPE_LABELS[item.deal_type] ?? item.deal_type;
+    const details = [
+      propertyLabel,
+      dealLabel,
+      item.rooms != null ? `${item.rooms} комн.` : null,
+      item.area != null ? `${item.area} м²` : null,
+    ].filter(Boolean).join(" · ");
+
+    return (
+      <button
+        key={item.id}
+        type="button"
+        className={styles.propertyCardShort}
+        onClick={() => navigate(`/property/${item.id}`)}
+      >
+        <img src={imageUrl} alt={item.title} className={styles.propertyImage} />
+        <div className={styles.propertyInfo}>
+          <div className={styles.propertyPrice}>{item.price.toLocaleString("ru-RU")} ₸</div>
+          <div className={styles.propertyTitle}>{item.title}</div>
+          <div className={styles.propertyAddress}>{item.address || item.city}</div>
+          <div className={styles.propertyMeta}>{details}</div>
+        </div>
+      </button>
+    );
+  };
+
   return (
     <div className={styles.catalogPage}>
       {/* Logout overlay */}
@@ -231,9 +261,29 @@ const Catalog: FunctionComponent = () => {
           >Каталог</span>
         </nav>
 
-        {/* Result count */}
-        <div className={styles.resultCount}>
-          {loading ? "Загрузка..." : error ? "Ошибка загрузки" : `Найдено: ${filtered.length} объектов`}
+        {/* Result count + view toggle */}
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <div className={styles.resultCount}>
+            {loading ? "Загрузка..." : error ? "Ошибка загрузки" : `Найдено: ${filtered.length} объектов`}
+          </div>
+          <div className={styles.viewToggle}>
+            <button
+              type="button"
+              className={`${styles.viewToggleBtn} ${viewMode === "map" ? styles.viewToggleBtnActive : ""}`}
+              onClick={() => setViewMode("map")}
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+              На карте
+            </button>
+            <button
+              type="button"
+              className={`${styles.viewToggleBtn} ${viewMode === "list" ? styles.viewToggleBtnActive : ""}`}
+              onClick={() => setViewMode("list")}
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+              Списком
+            </button>
+          </div>
         </div>
 
         {/* Auth */}
@@ -310,19 +360,34 @@ const Catalog: FunctionComponent = () => {
       {/* Main Content */}
       <div className={styles.content}>
 
-        {/* Map Area */}
-        <div className={styles.mapContainer}>
-          {error ? (
-            <div style={{
-              display: "flex", alignItems: "center", justifyContent: "center",
-              height: "100%", color: "#f5222d", fontFamily: "Inter, sans-serif", fontSize: 14,
-            }}>
-              {error}
-            </div>
-          ) : (
-            <MapComponent properties={mapProperties} />
-          )}
-        </div>
+        {/* Map / Grid Area */}
+        {viewMode === "map" ? (
+          <div className={styles.mapContainer}>
+            {error ? (
+              <div style={{
+                display: "flex", alignItems: "center", justifyContent: "center",
+                height: "100%", color: "#f5222d", fontFamily: "Inter, sans-serif", fontSize: 14,
+              }}>
+                {error}
+              </div>
+            ) : (
+              <MapComponent properties={mapProperties} />
+            )}
+          </div>
+        ) : (
+          <div className={styles.gridContainer}>
+            {loading && <div className={styles.emptyListState}>Загружаем объявления...</div>}
+            {!loading && error && <div className={styles.emptyListState} style={{ color: "#f5222d" }}>{error}</div>}
+            {!loading && !error && filtered.length === 0 && (
+              <div className={styles.emptyListState}>По выбранным фильтрам объявлений нет</div>
+            )}
+            {!loading && !error && filtered.length > 0 && (
+              <div className={styles.catalogGrid}>
+                {filtered.map(renderListingCard)}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Filters Sidebar */}
         <div className={styles.filtersContainer}>
@@ -435,49 +500,27 @@ const Catalog: FunctionComponent = () => {
             </div>
           </div>
 
-          <div className={styles.listingsHeader}>
-            <div className={styles.listingsTitle}>Объявления</div>
-            <div className={styles.listingsCount}>
-              {loading ? "..." : filtered.length}
-            </div>
-          </div>
+          {/* In list mode the grid shows the listings, so the sidebar list is only for map mode. */}
+          {viewMode === "map" && (
+            <>
+              <div className={styles.listingsHeader}>
+                <div className={styles.listingsTitle}>Объявления</div>
+                <div className={styles.listingsCount}>
+                  {loading ? "..." : filtered.length}
+                </div>
+              </div>
 
-          <div className={styles.propertyList}>
-            {loading && (
-              <div className={styles.emptyListState}>Загружаем объявления...</div>
-            )}
-            {!loading && !error && filtered.length === 0 && (
-              <div className={styles.emptyListState}>По выбранным фильтрам объявлений нет</div>
-            )}
-            {!loading && !error && filtered.map(item => {
-              const imageUrl = item.media?.[0]?.url || "https://placehold.co/600x400?text=Нет+фото";
-              const propertyLabel = PROPERTY_TYPE_LABELS[item.property_type] ?? item.property_type;
-              const dealLabel = DEAL_TYPE_LABELS[item.deal_type] ?? item.deal_type;
-              const details = [
-                propertyLabel,
-                dealLabel,
-                item.rooms != null ? `${item.rooms} комн.` : null,
-                item.area != null ? `${item.area} м²` : null,
-              ].filter(Boolean).join(" · ");
-
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  className={styles.propertyCardShort}
-                  onClick={() => navigate(`/property/${item.id}`)}
-                >
-                  <img src={imageUrl} alt={item.title} className={styles.propertyImage} />
-                  <div className={styles.propertyInfo}>
-                    <div className={styles.propertyPrice}>{item.price.toLocaleString("ru-RU")} ₸</div>
-                    <div className={styles.propertyTitle}>{item.title}</div>
-                    <div className={styles.propertyAddress}>{item.address || item.city}</div>
-                    <div className={styles.propertyMeta}>{details}</div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
+              <div className={styles.propertyList}>
+                {loading && (
+                  <div className={styles.emptyListState}>Загружаем объявления...</div>
+                )}
+                {!loading && !error && filtered.length === 0 && (
+                  <div className={styles.emptyListState}>По выбранным фильтрам объявлений нет</div>
+                )}
+                {!loading && !error && filtered.map(renderListingCard)}
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>

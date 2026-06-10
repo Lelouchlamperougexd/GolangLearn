@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import styles from "../css/Login.module.css";
 import { loginUser, getErrorMessage, requestPasswordReset } from "../api/auth";
 import { useAuth } from "../context/AuthContext";
+import { useLang } from "../context/LanguageContext";
 
 type Props = {
   onClose: () => void;
@@ -14,6 +15,7 @@ type Step = "login" | "forgot-email" | "forgot-sent";
 const Container: FunctionComponent<Props> = ({ onClose, onLoginSuccess }) => {
   const navigate = useNavigate();
   const { login } = useAuth();
+  const { lang } = useLang();
 
   const [step, setStep] = useState<Step>("login");
 
@@ -48,7 +50,7 @@ const Container: FunctionComponent<Props> = ({ onClose, onLoginSuccess }) => {
         else if (roleName === "developer") navigate("/developer");
       }
     } catch (err) {
-      setError(getErrorMessage(err));
+      setError(getErrorMessage(err, lang));
     } finally {
       setLoading(false);
     }
@@ -62,7 +64,7 @@ const Container: FunctionComponent<Props> = ({ onClose, onLoginSuccess }) => {
       await requestPasswordReset(resetEmail);
       setStep("forgot-sent");
     } catch (err) {
-      setError(getErrorMessage(err));
+      setError(getErrorMessage(err, lang));
     } finally {
       setLoading(false);
     }

@@ -7,6 +7,8 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   // VITE_API_URL must be just the base: http://host:port  (no /v1 suffix)
   const backendUrl = env.VITE_API_URL || 'http://134.209.84.250:8080'
+  // Public legal-entity registry used to verify BIN/IIN on company registration.
+  const binRegistryUrl = env.VITE_BIN_REGISTRY_URL || 'https://apiba.prgapp.kz'
 
   return {
     plugins: [react()],
@@ -30,6 +32,13 @@ export default defineConfig(({ mode }) => {
         '/uploads': {
           target: backendUrl,
           changeOrigin: true,
+        },
+        // /bin-registry/... → public legal-entity registry (BIN/IIN verification)
+        '/bin-registry': {
+          target: binRegistryUrl,
+          changeOrigin: true,
+          secure: true,
+          rewrite: (path) => path.replace(/^\/bin-registry/, ''),
         },
       },
     },

@@ -5,6 +5,12 @@ import { registerCompany, getErrorMessage } from "../api/auth";
 import { useLang } from "../context/LanguageContext";
 import { translations } from "../i18n/translations";
 import ConfirmEmail from "./ConfirmEmail";
+import { isStrongPassword } from "../utils/password";
+import { isValidBin, normalizeBin } from "../utils/bin";
+import { verifyBin } from "../api/bin";
+import PasswordChecklist from "../components/PasswordChecklist";
+
+type BinStatus = "idle" | "checking" | "format" | "notfound" | "valid" | "error";
 
 type Props = { role?: "agency" | "developer"; onClose: () => void; onBack: () => void };
 
@@ -17,12 +23,15 @@ const SignUpCompany: FunctionComponent<Props> = ({ role = "agency", onClose, onB
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [companyName, setCompanyName] = useState("");
   const [bin, setBin] = useState("");
+  const [binStatus, setBinStatus] = useState<BinStatus>("idle");
+  const [binName, setBinName] = useState("");
   const [city, setCity] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [position, setPosition] = useState("");
+  const [document, setDocument] = useState<File | null>(null);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [agreed, setAgreed] = useState(false);
@@ -31,19 +40,37 @@ const SignUpCompany: FunctionComponent<Props> = ({ role = "agency", onClose, onB
   const [submitted, setSubmitted] = useState(false);
 
   const isValidForm =
-    companyName.trim().length > 0 && bin.trim().length > 0 && city.length > 0 &&
+    companyName.trim().length > 0 && binStatus === "valid" && city.length > 0 &&
     email.includes("@") && email.includes(".") && phone.trim().length >= 10 &&
     firstName.trim().length > 0 && lastName.trim().length > 0 && position.trim().length > 0 &&
-    password.length >= 8 && password === confirmPassword && agreed;
+    document !== null && isStrongPassword(password) && password === confirmPassword && agreed;
+
+  const handleBinChange = (raw: string) => {
+    setBin(normalizeBin(raw));
+    setBinStatus("idle");
+    setBinName("");
+  };
+
+  const checkBin = async () => {
+    if (!isValidBin(bin)) { setBinStatus("format"); return; }
+    setBinStatus("checking");
+    try {
+      const { exists, name } = await verifyBin(bin);
+      if (exists) { setBinStatus("valid"); setBinName(name ?? ""); }
+      else { setBinStatus("notfound"); }
+    } catch {
+      setBinStatus("error");
+    }
+  };
 
   const handleSubmit = async () => {
-    if (!isValidForm) return;
+    if (!isValidForm || !document) return;
     setError(""); setLoading(true);
     try {
-      await registerCompany({ city, company_email: email, company_name: companyName, company_phone: phone, company_type: role, first_name: firstName, job_title: position, last_name: lastName, password, password_confirmation: confirmPassword, registration_number: bin });
+      await registerCompany({ city, company_email: email, company_name: companyName, company_phone: phone, company_type: role, first_name: firstName, job_title: position, last_name: lastName, password, password_confirmation: confirmPassword, registration_number: bin, document });
       setSubmitted(true);
     } catch (err) {
-      setError(getErrorMessage(err));
+      setError(getErrorMessage(err, lang));
     } finally {
       setLoading(false);
     }
@@ -119,7 +146,39 @@ const SignUpCompany: FunctionComponent<Props> = ({ role = "agency", onClose, onB
           <div className={styles.formRow}>
             <div className={styles.formGroup}>
               <label className={styles.label}>{t.regNumber}<span>*</span></label>
-              <input type="text" className={styles.input} placeholder="БИН/ИИН" value={bin} onChange={e => setBin(e.target.value)} disabled={loading} />
+              <div style={{ display: "flex", gap: 8 }}>
+                <input
+                  type="text"
+                  className={styles.input}
+                  placeholder="БИН/ИИН"
+                  value={bin}
+                  onChange={e => handleBinChange(e.target.value)}
+                  onBlur={() => { if (bin.length === 12 && binStatus === "idle") checkBin(); }}
+                  disabled={loading}
+                  inputMode="numeric"
+                  maxLength={12}
+                  style={{ flex: 1 }}
+                />
+                <button
+                  type="button"
+                  onClick={checkBin}
+                  disabled={loading || binStatus === "checking" || bin.length !== 12}
+                  style={{
+                    flexShrink: 0, padding: "0 16px", height: 44, borderRadius: 8,
+                    border: "1px solid #70a0ff", background: binStatus === "valid" ? "#eaf6ee" : "#fff",
+                    color: "#70a0ff", fontSize: 14, fontWeight: 500,
+                    cursor: bin.length === 12 && binStatus !== "checking" ? "pointer" : "not-allowed",
+                    opacity: bin.length === 12 && binStatus !== "checking" ? 1 : 0.6,
+                  }}
+                >
+                  {binStatus === "checking" ? "…" : binStatus === "valid" ? "✓" : t.binCheck}
+                </button>
+              </div>
+              {binStatus === "checking" && <div style={{ fontSize: 12, color: "#595959", marginTop: 6 }}>{t.binChecking}</div>}
+              {binStatus === "format" && <div style={{ fontSize: 12, color: "#e53e3e", marginTop: 6 }}>{t.binFormatInvalid}</div>}
+              {binStatus === "notfound" && <div style={{ fontSize: 12, color: "#e53e3e", marginTop: 6 }}>{t.binNotFound}</div>}
+              {binStatus === "error" && <div style={{ fontSize: 12, color: "#e53e3e", marginTop: 6 }}>{t.binError}</div>}
+              {binStatus === "valid" && <div style={{ fontSize: 12, color: "#15a34a", marginTop: 6 }}>{t.binFound} {binName || "✓"}</div>}
             </div>
             <div className={styles.formGroup}>
               <label className={styles.label}>{t.city}<span>*</span></label>
@@ -140,6 +199,35 @@ const SignUpCompany: FunctionComponent<Props> = ({ role = "agency", onClose, onB
             <div className={styles.formGroup}>
               <label className={styles.label}>{t.companyPhone}<span>*</span></label>
               <input type="tel" className={styles.input} placeholder="+7 700 000 00 00" value={phone} onChange={e => setPhone(e.target.value)} disabled={loading} />
+            </div>
+          </div>
+
+          <div className={styles.formRow}>
+            <div className={styles.formGroup} style={{ flex: 1 }}>
+              <label className={styles.label}>{t.document}<span>*</span></label>
+              <label
+                style={{
+                  display: "flex", alignItems: "center", gap: 10, padding: "12px 16px",
+                  border: `1.5px dashed ${document ? "#15a34a" : "#cdd3da"}`, borderRadius: 8,
+                  background: document ? "#f1faf4" : "#fafbfc",
+                  cursor: loading ? "default" : "pointer", color: document ? "#15a34a" : "#595959",
+                  fontSize: 14, fontFamily: "inherit",
+                }}
+              >
+                <input
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/*"
+                  style={{ display: "none" }}
+                  disabled={loading}
+                  onChange={e => setDocument(e.target.files?.[0] ?? null)}
+                />
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {document ? document.name : t.documentChoose}
+                </span>
+                {document && <span style={{ marginLeft: "auto", fontSize: 12, color: "#70a0ff" }}>{t.documentChange}</span>}
+              </label>
+              <div style={{ fontSize: 12, color: "#939393", marginTop: 6 }}>{t.documentHint}</div>
             </div>
           </div>
 
@@ -184,6 +272,8 @@ const SignUpCompany: FunctionComponent<Props> = ({ role = "agency", onClose, onB
               </div>
             </div>
           </div>
+
+          {password.length > 0 && <PasswordChecklist password={password} />}
 
           {confirmPassword.length > 0 && password !== confirmPassword && (
             <div style={{ color: "#e53e3e", fontSize: "12px", marginTop: "-8px", marginBottom: "4px" }}>{t.passwordMismatch}</div>

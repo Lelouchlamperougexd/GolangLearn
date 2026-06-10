@@ -30,6 +30,7 @@ export interface RegisterCompanyPayload {
   password: string;
   password_confirmation: string;
   registration_number: string;
+  document: File;
 }
 
 // ─── Response Shapes ─────────────────────────────────────────────────────────
@@ -83,9 +84,26 @@ export async function registerUser(payload: RegisterUserPayload): Promise<Regist
   return res.data.data;
 }
 
-/** POST /authentication/company — register agency / developer */
+/** POST /authentication/company — register agency / developer (multipart, with document) */
 export async function registerCompany(payload: RegisterCompanyPayload): Promise<RegisterResponse> {
-  const res = await api.post<BackendEnvelope<RegisterResponse>>('/authentication/company', payload);
+  const form = new FormData();
+  form.append('company_name', payload.company_name);
+  form.append('registration_number', payload.registration_number);
+  form.append('city', payload.city);
+  form.append('company_email', payload.company_email);
+  form.append('company_phone', payload.company_phone);
+  form.append('company_type', payload.company_type);
+  form.append('first_name', payload.first_name);
+  form.append('last_name', payload.last_name);
+  form.append('job_title', payload.job_title);
+  form.append('password', payload.password);
+  form.append('password_confirmation', payload.password_confirmation);
+  if (payload.invite_token) form.append('invite_token', payload.invite_token);
+  form.append('document', payload.document);
+
+  const res = await api.post<BackendEnvelope<RegisterResponse>>('/authentication/company', form, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
   return res.data.data;
 }
 
@@ -121,40 +139,108 @@ export async function getMe(): Promise<User> {
 
 // ─── Error Handling ───────────────────────────────────────────────────────────
 
-/** Extract a human-readable error message from axios / backend errors */
-export function getErrorMessage(err: unknown): string {
+type ErrLang = 'ru' | 'kz' | 'en';
+
+const ERR_MESSAGES: Record<ErrLang, Record<string, string>> = {
+  ru: {
+    server: 'Ошибка сервера. Попробуйте позже',
+    unauthorized: 'Неверный email или пароль',
+    forbidden: 'Доступ запрещён',
+    notFound: 'Пользователь не найден',
+    duplicate: 'Пользователь с таким email уже существует',
+    badFields: 'Проверьте правильность заполненных полей',
+    tooMany: 'Слишком много попыток. Подождите немного',
+    network: 'Нет соединения с сервером. Проверьте подключение',
+    generic: 'Произошла ошибка. Попробуйте ещё раз.',
+    pwPolicy: 'Пароль не подходит. Нужно 8–72 символа: заглавная и строчная буквы, цифра и спецсимвол (!@#$%…)',
+    emailInvalid: 'Введите корректный email, например name@example.com',
+    phoneInvalid: 'Введите корректный номер телефона, например +7 700 000 00 00',
+    required: 'Заполните все обязательные поля (отмечены *)',
+  },
+  kz: {
+    server: 'Сервер қатесі. Кейінірек қайталаңыз',
+    unauthorized: 'Email немесе құпиясөз қате',
+    forbidden: 'Қол жеткізуге тыйым салынған',
+    notFound: 'Пайдаланушы табылмады',
+    duplicate: 'Мұндай email-мен пайдаланушы бұрыннан бар',
+    badFields: 'Толтырылған өрістердің дұрыстығын тексеріңіз',
+    tooMany: 'Тым көп әрекет. Сәл күтіңіз',
+    network: 'Сервермен байланыс жоқ. Қосылымды тексеріңіз',
+    generic: 'Қате пайда болды. Қайталап көріңіз.',
+    pwPolicy: 'Құпиясөз жарамсыз. 8–72 таңба қажет: бас және кіші әріп, сан және арнайы таңба (!@#$%…)',
+    emailInvalid: 'Дұрыс email енгізіңіз, мысалы name@example.com',
+    phoneInvalid: 'Дұрыс телефон нөмірін енгізіңіз, мысалы +7 700 000 00 00',
+    required: 'Барлық міндетті өрістерді толтырыңыз (* белгісі)',
+  },
+  en: {
+    server: 'Server error. Please try again later',
+    unauthorized: 'Incorrect email or password',
+    forbidden: 'Access denied',
+    notFound: 'User not found',
+    duplicate: 'A user with this email already exists',
+    badFields: 'Please check the entered fields',
+    tooMany: 'Too many attempts. Please wait a moment',
+    network: 'No connection to the server. Check your connection',
+    generic: 'Something went wrong. Please try again.',
+    pwPolicy: 'Password is invalid. Use 8–72 characters with an uppercase and lowercase letter, a digit and a special character (!@#$%…)',
+    emailInvalid: 'Enter a valid email, e.g. name@example.com',
+    phoneInvalid: 'Enter a valid phone number, e.g. +7 700 000 00 00',
+    required: 'Please fill in all required fields (marked *)',
+  },
+};
+
+/** Turn a Go-validator dump ("...failed on the 'password' tag") into a friendly message. */
+function humanizeValidatorError(raw: string, m: Record<string, string>): string | null {
+  if (!/failed on the '.*' tag|validation for/i.test(raw)) return null;
+  const lower = raw.toLowerCase();
+  if (lower.includes("'password'") || lower.includes('.password')) return m.pwPolicy;
+  if (lower.includes("'email'") || lower.includes('.email')) return m.emailInvalid;
+  if (lower.includes('phone')) return m.phoneInvalid;
+  if (lower.includes("'required'")) return m.required;
+  return m.badFields;
+}
+
+/** Extract a human-readable error message from axios / backend errors. */
+export function getErrorMessage(err: unknown, lang: ErrLang = 'ru'): string {
+  const m = ERR_MESSAGES[lang] ?? ERR_MESSAGES.ru;
+
   if (err && typeof err === 'object' && 'response' in err) {
     const axiosErr = err as { response?: { data?: unknown; status?: number } };
     const data = axiosErr.response?.data;
     const status = axiosErr.response?.status;
 
     // Always show friendly message for server errors — never leak raw backend text
-    if (status === 500) return 'Ошибка сервера. Попробуйте позже';
+    if (status === 500) return m.server;
 
     // Backend error format: { "error": "some message" }
     if (data && typeof data === 'object' && 'error' in data) {
       const msg = String((data as { error: unknown }).error);
-      if (msg === 'unauthorized') return 'Неверный email или пароль';
-      if (msg === 'forbidden') return 'Доступ запрещён';
-      if (msg === 'not found') return 'Пользователь не найден';
-      if (msg.includes('duplicate') || msg.includes('already exists')) return 'Пользователь с таким email уже существует';
-      if (msg.length > 0 && msg.length < 200) return msg;
+      // Humanize Go validator dumps first so we never show raw "failed on the 'X' tag".
+      const validator = humanizeValidatorError(msg, m);
+      if (validator) return validator;
+      if (msg === 'unauthorized') return m.unauthorized;
+      if (msg === 'forbidden') return m.forbidden;
+      if (msg === 'not found') return m.notFound;
+      if (msg.includes('duplicate') || msg.includes('already exists')) return m.duplicate;
+      if (/password/i.test(msg) && /(weak|invalid|strong|complex|requirement)/i.test(msg)) return m.pwPolicy;
+      // Only surface short, non-technical backend messages verbatim.
+      if (msg.length > 0 && msg.length < 160 && !/key:|\btag\b|panic|sql|nil pointer/i.test(msg)) return msg;
     }
 
     // Fallback by status code
-    if (status === 401) return 'Неверный email или пароль';
-    if (status === 403) return 'Доступ запрещён';
-    if (status === 400) return 'Проверьте правильность заполненных полей';
-    if (status === 429) return 'Слишком много попыток. Подождите немного';
+    if (status === 401) return m.unauthorized;
+    if (status === 403) return m.forbidden;
+    if (status === 400) return m.badFields;
+    if (status === 429) return m.tooMany;
   }
 
   // Network error (no response at all)
   if (err && typeof err === 'object' && 'message' in err) {
     const msg = String((err as { message: unknown }).message);
     if (msg.includes('Network Error') || msg.includes('ERR_')) {
-      return 'Нет соединения с сервером. Проверьте подключение';
+      return m.network;
     }
   }
 
-  return 'Произошла ошибка. Попробуйте ещё раз.';
+  return m.generic;
 }

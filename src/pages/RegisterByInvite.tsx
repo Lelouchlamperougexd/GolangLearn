@@ -17,6 +17,7 @@ const RegisterByInvite: FunctionComponent = () => {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [position, setPosition] = useState("");
+  const [document, setDocument] = useState<File | null>(null);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [agreed, setAgreed] = useState(false);
@@ -37,12 +38,13 @@ const RegisterByInvite: FunctionComponent = () => {
     firstName.trim().length > 0 &&
     lastName.trim().length > 0 &&
     position.trim().length > 0 &&
+    document !== null &&
     password.length >= 8 &&
     password === confirmPassword &&
     agreed;
 
   const handleSubmit = async () => {
-    if (!isValidForm) return;
+    if (!isValidForm || !document) return;
     setError("");
     setLoading(true);
     try {
@@ -59,6 +61,7 @@ const RegisterByInvite: FunctionComponent = () => {
         password_confirmation: confirmPassword,
         registration_number: bin,
         invite_token: token,
+        document,
       });
       const { token: authToken, ...user } = data;
       login(authToken, user as Parameters<typeof login>[1]);
@@ -153,6 +156,33 @@ const RegisterByInvite: FunctionComponent = () => {
             <div className={styles.formGroup}>
               <label className={styles.label}>Телефон компании<span>*</span></label>
               <input type="tel" className={styles.input} placeholder="+7 700 000 00 00" value={phone} onChange={e => setPhone(e.target.value)} disabled={loading} />
+            </div>
+          </div>
+
+          <div className={styles.formRow}>
+            <div className={styles.formGroup} style={{ flex: 1 }}>
+              <label className={styles.label}>Документ о регистрации<span>*</span></label>
+              <label
+                style={{
+                  display: "flex", alignItems: "center", gap: 10, padding: "12px 16px",
+                  border: `1.5px dashed ${document ? "#15a34a" : "#cdd3da"}`, borderRadius: 8,
+                  background: document ? "#f1faf4" : "#fafbfc",
+                  cursor: loading ? "default" : "pointer", color: document ? "#15a34a" : "#595959", fontSize: 14,
+                }}
+              >
+                <input
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/*"
+                  style={{ display: "none" }}
+                  disabled={loading}
+                  onChange={e => setDocument(e.target.files?.[0] ?? null)}
+                />
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {document ? document.name : "Прикрепить файл"}
+                </span>
+              </label>
+              <div style={{ fontSize: 12, color: "#939393", marginTop: 6 }}>Свидетельство о регистрации (PDF, JPG или PNG)</div>
             </div>
           </div>
 

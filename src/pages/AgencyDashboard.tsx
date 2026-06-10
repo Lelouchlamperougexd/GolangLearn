@@ -1142,8 +1142,14 @@ const AgencyDashboardContent: FunctionComponent = () => {
   const navigate = useNavigate();
   const { logout, user, token, login } = useAuth();
 
+  const onboardingKey = `qonys_onboarding_agency_${user?.id ?? "anon"}`;
   const [obStep, setObStep] = useState(0);
-  const [showOnboarding, setShowOnboarding] = useState(true);
+  // Onboarding is a one-time tour: only show it until the user has dismissed it once.
+  const [showOnboarding, setShowOnboarding] = useState(() => !localStorage.getItem(onboardingKey));
+  const dismissOnboarding = () => {
+    setShowOnboarding(false);
+    localStorage.setItem(onboardingKey, "1");
+  };
   const [activeTab, setActiveTab] = useState("overview");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -1719,7 +1725,7 @@ const AgencyDashboardContent: FunctionComponent = () => {
       {showOnboarding && (
         <div className={s.overlay}>
           <div className={s.onboarding}>
-            <button className={s.onboardingClose} onClick={() => setShowOnboarding(false)}>✕</button>
+            <button className={s.onboardingClose} onClick={dismissOnboarding}>✕</button>
             <div className={s.onboardingStep}>Шаг {obStep === 0 ? 1 : obStep} из {ONBOARDING_STEPS.length}</div>
             <div className={s.progressBar}>
               <div className={s.progressFill} style={{ width: `${((obStep === 0 ? 0 : obStep) / ONBOARDING_STEPS.length) * 100}%` }} />
@@ -1728,10 +1734,10 @@ const AgencyDashboardContent: FunctionComponent = () => {
             <div className={s.onboardingTitle}>{ONBOARDING_STEPS[obStep === 0 ? 0 : obStep - 1]?.title}</div>
             <div className={s.onboardingDesc}>{ONBOARDING_STEPS[obStep === 0 ? 0 : obStep - 1]?.desc}</div>
             <div className={s.onboardingActions}>
-              <button className={s.btnSkip} onClick={() => setShowOnboarding(false)}>Пропустить</button>
+              <button className={s.btnSkip} onClick={dismissOnboarding}>Пропустить</button>
               <button className={s.btnNext} onClick={() => {
                 const next = obStep + 1;
-                if (next > ONBOARDING_STEPS.length) setShowOnboarding(false);
+                if (next > ONBOARDING_STEPS.length) dismissOnboarding();
                 else setObStep(next);
               }}>
                 {obStep >= ONBOARDING_STEPS.length ? "Перейти к работе →" : "Далее →"}
