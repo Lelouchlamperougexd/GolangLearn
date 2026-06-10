@@ -50,7 +50,7 @@ jobs:
     name: Deploy to Server
     runs-on: ubuntu-latest
     needs: ci
-    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/frontend-from-server'))
 
     steps:
       - name: Checkout
@@ -89,6 +89,9 @@ jobs:
           rsync -az --delete \
             --exclude '.git' \
             --exclude '.github' \
+            --exclude '.env' \
+            --exclude '.env.local' \
+            --exclude '.env.*.local' \
             --exclude 'node_modules' \
             --exclude 'dist' \
             --exclude '*.log' \
